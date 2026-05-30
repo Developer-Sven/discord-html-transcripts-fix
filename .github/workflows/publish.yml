@@ -1,0 +1,41 @@
+name: Publish to npm
+
+# Publishes this package to npm via GitHub OIDC "Trusted Publishing" — no NPM_TOKEN
+# secret required. Configure the trusted publisher once on npmjs.com:
+#   Package -> Settings -> Trusted Publishing -> GitHub Actions
+#     Organization or user : Developer-Sven
+#     Repository           : discord-html-transcripts-fix
+#     Workflow filename    : publish.yml   (this file)
+#     Environment          : (leave empty)
+
+on:
+  push:
+    tags:
+      - 'v*' # pushing tag v2.0.0 publishes version 2.0.0
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # REQUIRED: lets npm authenticate via OIDC and attach provenance
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Upgrade npm (Trusted Publishing requires npm >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public

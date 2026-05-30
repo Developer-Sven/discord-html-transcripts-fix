@@ -1,0 +1,63 @@
+{
+  "name": "discord-html-transcripts-fix",
+  "version": "2.0.0",
+  "description": "A nicely formatted html transcript generator for discord.js. Bugfix fork with support for the latest discord.js and Components v2.",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
+  "license": "Apache-2.0",
+  "author": "Developer-Sven (https://github.com/Developer-Sven)",
+  "homepage": "https://github.com/Developer-Sven/discord-html-transcripts-fix#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Developer-Sven/discord-html-transcripts-fix.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Developer-Sven/discord-html-transcripts-fix/issues"
+  },
+  "keywords": [
+    "discord",
+    "discord.js",
+    "transcript",
+    "html",
+    "logger",
+    "components-v2",
+    "ticket"
+  ],
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.js.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@lit-labs/ssr": "^3.3.1",
+    "@skyra/discord-components-core": "^4.0.2",
+    "debug": "^4.4.3",
+    "discord-markdown-parser": "~1.3.0",
+    "highlight.js": "^11.11.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "simple-markdown": "^0.7.3",
+    "twemoji": "^14.0.2",
+    "undici": "^7.16.0"
+  },
+  "peerDependencies": {
+    "discord.js": "^14.0.0 || ^15.0.0",
+    "sharp": ">=0.30.0"
+  },
+  "peerDependenciesMeta": {
+    "sharp": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "prepublishOnly": "node -e \"require('fs').accessSync('dist/index.js'); require('fs').accessSync('dist/index.d.ts');\" || (echo 'dist/index.js or dist/index.d.ts missing — refusing to publish' && exit 1)"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

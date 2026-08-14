@@ -61,7 +61,7 @@ export type GenerateFromMessagesOptions<T extends ExportReturnType> = Partial<{
      * Stats footer rendered at the bottom (e.g. "12 messages · 3 participants · 2 images · …").
      * - `false` to disable entirely
      * - `{ enabled: false }` to disable
-     * - `{ template: '{messages} Nachrichten · {participants} Teilnehmer · {images} Bilder · {from} → {to} · {span}' }`
+     * - `{ template: '{messages} messages from {participants} people · {images} images · {from} → {to}' }`
      *   to render with a custom string. Supported placeholders:
      *   `{messages}` `{participants}` `{images}` `{from}` `{to}` `{span}`
      *

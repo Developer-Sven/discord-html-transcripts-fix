@@ -127,7 +127,7 @@ Times use the timezone of the machine generating the transcript.
 ```js
 await createTranscript(channel, {
     statsFooter: {
-        template: '{messages} Nachrichten · {participants} Teilnehmer · {images} Bilder · {from} → {to} · {span}',
+        template: '{messages} messages from {participants} people · {images} images · {from} → {to}',
     },
 });
 

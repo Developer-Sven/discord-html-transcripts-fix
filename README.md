@@ -13,6 +13,7 @@ Forked from [discord-html-transcripts](https://github.com/ItzDerock/discord-html
 - **Node.js ≥ 20** — the image downloader uses `undici` v7.
 - **discord.js v14 or v15** — required peer dependency.
 - **[`sharp`](https://sharp.pixelplumbing.com/)** — *optional* peer dependency, only needed if you use `.withCompression()` to compress / convert transcript images to WebP.
+- **[`@lit-labs/ssr`](https://www.npmjs.com/package/@lit-labs/ssr) + [`lit`](https://lit.dev/)** — *optional* peer dependencies, only needed for the `hydrate: true` option.
 
 ## Install
 
@@ -20,7 +21,28 @@ Forked from [discord-html-transcripts](https://github.com/ItzDerock/discord-html
 npm install discord-html-transcripts-fix
 ```
 
-`discord.js` is the only **required** peer dependency — React, Lit SSR, the markdown parser, etc. are installed automatically. `sharp` is an optional peer (image compression only).
+`discord.js` is the only **required** peer dependency — React, the markdown parser, etc. are installed automatically.
+
+Two features are opt-in, so their dependencies are *optional* peers and are not installed by default:
+
+```bash
+npm install sharp                 # only for .withCompression()
+npm install @lit-labs/ssr lit     # only for the `hydrate: true` option
+```
+
+Keeping Lit SSR out of the default install also keeps the deprecated
+`node-fetch → fetch-blob → node-domexception` chain (and its `npm warn deprecated`
+line) out of every install that never uses hydration. If you do install Lit SSR and
+want that warning gone as well, swap node-fetch for a dependency-free drop-in in
+**your own** `package.json` (npm only honours `overrides` in the root project):
+
+```json
+{
+  "overrides": {
+    "node-fetch": "npm:node-fetch-native@^1.6.7"
+  }
+}
+```
 
 ## Quick start
 
@@ -62,7 +84,7 @@ const stream = await createTranscript(channel, {
 | `filename` | `string` | `transcript-{channel-id}.html` | Output filename when returning as attachment. |
 | `saveImages` | `boolean` | `false` | Download images and inline them as base64 data URLs. |
 | `favicon` | `'guild'` \| `string` | `'guild'` | Page favicon — `'guild'` uses the server icon, or pass a URL. |
-| `hydrate` | `boolean` | `false` | Server-side hydrate via `@lit-labs/ssr` (slower; usually leave off). |
+| `hydrate` | `boolean` | `false` | Server-side hydrate via `@lit-labs/ssr` (slower; usually leave off). Requires the optional peers `@lit-labs/ssr` + `lit` — without them you get a warning and plain, non-hydrated markup. |
 | `language` | `'en'` \| `'de'` | `'en'` | UI language for participant labels, filter strings, etc. |
 | `i18n` | `Partial<Record<lang, Record<key,string>>>` | — | Override individual strings per language. |
 | `statsFooter` | `false` \| `{ enabled?, template? }` | `{ enabled: true }` | Bottom stats line. See below. |
@@ -199,6 +221,8 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 
 - **`react`, `react-dom`, `debug` moved into regular dependencies** so users don't install them manually (`debug` was actually a missing runtime dep in the original — `images.js` requires it)
 - **`sharp` declared as an optional peer dependency** — needed only for `.withCompression()`, no longer a hidden requirement
+- **`@lit-labs/ssr` + `lit` declared as optional peer dependencies** — needed only for `hydrate: true`. As hard dependencies they pulled the deprecated `node-fetch → fetch-blob → node-domexception` chain into every install while only ever being loaded behind that one option
+- **`hydrate: true` actually works** — the markup was handed to Lit as a plain string, which Lit HTML-escapes, so the option emitted a page of visible `&lt;!DOCTYPE html&gt;…` source text instead of a transcript
 - **TypeScript declarations match runtime** — `ExportReturnType.Stream`, `language`, `i18n`, `stream`, and `withConcurrency()` are now exposed in the types
 - `discord.js` remains the only **required** peer dependency
 

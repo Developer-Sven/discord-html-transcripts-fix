@@ -10,6 +10,11 @@ const embeds_1 = require("../../utils/embeds");
 const content_1 = __importStar(require("./content"));
 const utils_1 = require("../../utils/utils");
 
+function t(context, key, fallback) {
+    const dict = context?.i18n?.[context?.lang] || context?.i18n?.en || {};
+    return dict[key] || fallback || key;
+}
+
 async function DiscordEmbed({ embed, context }) {
     const type = embed.type || 'rich';
     const url = embed.url ? (0, utils_1.safeHref)(embed.url) : undefined;
@@ -71,7 +76,7 @@ async function DiscordEmbed({ embed, context }) {
             embed.footer && ((0, jsx_runtime_1.jsx)("discord-embed-footer", {
                 slot: "footer",
                 footerImage: embed.footer.proxyIconURL ?? embed.footer.iconURL,
-                timestamp: embed.timestamp ?? undefined,
+                timestamp: (0, utils_1.formatMessageTimestamp)(embed.timestamp, context?.timestampFormat, t(context, 'yesterdayAt', 'Yesterday at {time}')),
                 children: embed.footer.text
             }))
         ]

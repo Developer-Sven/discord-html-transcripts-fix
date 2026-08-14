@@ -110,6 +110,13 @@ async function DiscordMessage({ message, context }) {
         const snapshots = Array.isArray(message.messageSnapshots) ? message.messageSnapshots : [];
 
         const editedAtIso = message.editedAt instanceof Date ? message.editedAt.toISOString() : null;
+        // Hover text for the "(edited)" marker — the ISO string stays in
+        // data-edit-iso for tooling, but humans get the same wording as the
+        // message timestamps instead of "2026-08-14T07:16:07.422Z".
+        const editedAtLabel = (0, utils_1.formatMessageTimestamp)(message.editedAt, context?.timestampFormat, t(context, 'yesterdayAt', 'Yesterday at {time}'));
+        const editedAtTitle = editedAtLabel
+            ? t(context, 'editedAt', 'Edited at {time}').replace('{time}', editedAtLabel)
+            : undefined;
         const pinned = !!message.pinned;
 
         // Forum applied tags — only on the first message of a forum thread (the post itself)
@@ -138,17 +145,20 @@ async function DiscordMessage({ message, context }) {
         // no longer render a separate "/cmd opt:val by user" line.
         const slashData = buildSlashCommandData(message);
 
-        // FIX: pass timestamp as ISO string. React would otherwise stringify a
-        // Date via toString() (locale-dependent like "Tue May 26 2026 …"),
-        // which skyra's <discord-message> often fails to parse — falling back
-        // to new Date() == transcript creation time. ISO is round-trip safe.
+        // The timestamp is formatted here rather than handed to <discord-message>
+        // as a Date or ISO string. Skyra's converter only formats real Date
+        // objects — an attribute always arrives as a string, so it passed the raw
+        // "2026-08-14T07:16:07.422Z" straight through to the page. Preformatting
+        // also lets us match Discord's own today/yesterday/date wording and honour
+        // the dateFormat + timeFormat options.
         const createdAtIso = message.createdAt instanceof Date
             ? message.createdAt.toISOString()
             : (typeof message.createdAt === 'string' ? message.createdAt : undefined);
+        const timestampLabel = (0, utils_1.formatMessageTimestamp)(message.createdAt, context?.timestampFormat, t(context, 'yesterdayAt', 'Yesterday at {time}'));
 
         return ((0, jsx_runtime_1.jsxs)("discord-message", {
             id: `m-${message.id}`,
-            timestamp: createdAtIso,
+            timestamp: timestampLabel,
             edited: message.editedAt !== null,
             server: (isCrossGuildReply || isCrosspost || isCrossposted) ? true : undefined,
             highlight: message.mentions.everyone || pinned,
@@ -158,6 +168,7 @@ async function DiscordMessage({ message, context }) {
             "data-author-name": authorName,
             "data-roles": memberRoleIds,
             "data-timestamp": ts ? String(ts) : undefined,
+            "data-timestamp-iso": createdAtIso,
             "data-text": lowerText,
             "data-pinned": pinned ? 'true' : undefined,
             "data-has-image": hasImage ? 'true' : undefined,
@@ -184,7 +195,7 @@ async function DiscordMessage({ message, context }) {
                     (0, jsx_runtime_1.jsx)("span", { className: "dht-activity-icon", children: '🎮' }),
                     (0, jsx_runtime_1.jsxs)("span", { children: [activity.type, ' invite', activity.partyId ? ` · Party ${activity.partyId.slice(-6)}` : ''] })
                 ] }),
-                editedAtIso && (0, jsx_runtime_1.jsx)("span", { className: "dht-edit-marker", title: editedAtIso, "data-edit-iso": editedAtIso, "data-i18n": "edited", "data-i18n-params": JSON.stringify({ time: editedAtIso }), children: '(' + t(context, 'edited', 'edited') + ')' }),
+                editedAtIso && (0, jsx_runtime_1.jsx)("span", { className: "dht-edit-marker", title: editedAtTitle || editedAtIso, "data-edit-iso": editedAtIso, "data-i18n": "edited", "data-i18n-params": JSON.stringify({ time: editedAtLabel || editedAtIso }), children: '(' + t(context, 'edited', 'edited') + ')' }),
                 Array.isArray(message.editHistory) && message.editHistory.length > 0 && renderEditHistory(message.editHistory, context),
                 snapshots.length > 0 && renderSnapshots(snapshots, context),
                 message.content && ((0, jsx_runtime_1.jsx)(content_1.default, { content: message.content, context: Object.assign({}, context, { type: message.webhookId ? content_1.RenderType.WEBHOOK : content_1.RenderType.NORMAL }) })),

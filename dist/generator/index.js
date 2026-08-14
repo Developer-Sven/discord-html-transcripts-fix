@@ -131,7 +131,14 @@ async function render(_a) {
         stats,
     };
 
-    const renderContext = Object.assign({ lang, i18n, dateSeps, stats }, callbacks ? { callbacks } : {});
+    // Resolved once so every message in this transcript is measured against the
+    // same "now" and shares one date/time format.
+    const timestampFormat = (0, utils_1.resolveTimestampFormat)({
+        dateFormat: options.dateFormat,
+        timeFormat: options.timeFormat,
+    });
+
+    const renderContext = Object.assign({ lang, i18n, dateSeps, stats, timestampFormat }, callbacks ? { callbacks } : {});
 
     const docTree = (0, jsx_runtime_1.jsxs)("html", { lang, children: [
         (0, jsx_runtime_1.jsxs)("head", { children: [
@@ -187,13 +194,11 @@ async function render(_a) {
 
     if (options.hydrate) {
         const markup = await (0, utils_1.streamToString)(prelude);
-        // @lit-labs/ssr is an optional peer dependency (same treatment as sharp):
-        // it is only ever needed for `hydrate: true`, and declaring it as a hard
-        // dependency dragged the deprecated node-fetch → fetch-blob →
-        // node-domexception chain into every single install. When it is absent we
-        // fall back to the non-SSR'd markup — still a fully working transcript,
-        // because the <discord-*> definitions are loaded from the CDN module tag
-        // above regardless of this branch.
+        // @lit-labs/ssr and lit are regular dependencies, so this normally always
+        // resolves. The guard only covers a broken or partial install: instead of
+        // failing the whole export we fall back to the non-SSR'd markup, which is
+        // still a fully working transcript because the <discord-*> definitions are
+        // loaded from the CDN module tag above regardless of this branch.
         try {
             const { render: renderLit } = await import('@lit-labs/ssr');
             const { html: litHtml } = await import('lit');
@@ -216,9 +221,9 @@ async function render(_a) {
             if (code !== 'ERR_MODULE_NOT_FOUND' && code !== 'MODULE_NOT_FOUND') throw err;
             if (!warnedMissingLitSsr) {
                 warnedMissingLitSsr = true;
-                console.warn('[discord-html-transcripts-fix] `hydrate: true` needs the optional peer dependencies ' +
-                    '@lit-labs/ssr and lit, which are not installed. Returning non-hydrated markup — the transcript ' +
-                    'still renders correctly. Run `npm i @lit-labs/ssr lit` to enable hydration.');
+                console.warn('[discord-html-transcripts-fix] `hydrate: true` could not load @lit-labs/ssr / lit, ' +
+                    'although both ship as dependencies of this package. Returning non-hydrated markup — the ' +
+                    'transcript still renders correctly. Reinstalling your dependencies should fix this.');
             }
             return markup;
         }

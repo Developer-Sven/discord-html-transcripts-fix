@@ -18,11 +18,11 @@ async function SystemMessage({ message, context }) {
     const color = message.member?.roles?.color?.hexColor;
     const authorId = author?.id;
     const ctx = context || {};
-    // FIX: pass message.createdAt as ISO string so skyra renders the original
-    // timestamp instead of falling back to "now" (= transcript creation time).
-    const ts = message.createdAt instanceof Date
-        ? message.createdAt.toISOString()
-        : (typeof message.createdAt === 'string' ? message.createdAt : undefined);
+    // Preformatted for the same reason as in message.js: skyra only formats real
+    // Date objects, and an attribute always arrives as a string — so an ISO value
+    // was rendered verbatim. This also keeps system messages worded like the
+    // regular ones (today / yesterday / full date).
+    const ts = (0, utils_1.formatMessageTimestamp)(message.createdAt, ctx.timestampFormat, t(ctx, 'yesterdayAt', 'Yesterday at {time}'));
 
     switch (message.type) {
         case discord_js_1.MessageType.RecipientAdd:

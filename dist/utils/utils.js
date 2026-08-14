@@ -12,7 +12,68 @@ exports.safeHref = safeHref;
 exports.safeColor = safeColor;
 exports.safeImageMime = safeImageMime;
 exports.escapeHtml = escapeHtml;
+exports.resolveTimestampFormat = resolveTimestampFormat;
+exports.formatMessageTimestamp = formatMessageTimestamp;
 const twemoji_1 = __importDefault(require("twemoji"));
+
+const DEFAULT_TIMESTAMP_FORMAT = { dateFormat: 'dd/mm/yyyy', timeFormat: '24h' };
+
+function pad2(n) {
+    return n < 10 ? '0' + n : String(n);
+}
+
+// Normalizes the user-facing options once, at render start, so every renderer
+// shares one reference "now" — otherwise a transcript rendered across midnight
+// could label the same day both "today" and with a full date.
+function resolveTimestampFormat(options) {
+    const o = options || {};
+    return {
+        dateFormat: o.dateFormat === 'mm/dd/yyyy' ? 'mm/dd/yyyy' : DEFAULT_TIMESTAMP_FORMAT.dateFormat,
+        timeFormat: o.timeFormat === '12h' ? '12h' : DEFAULT_TIMESTAMP_FORMAT.timeFormat,
+        now: o.now instanceof Date ? o.now : new Date(),
+    };
+}
+
+function formatClock(d, timeFormat) {
+    const minutes = pad2(d.getMinutes());
+    if (timeFormat === '12h') {
+        const h = d.getHours();
+        const hour12 = h % 12 === 0 ? 12 : h % 12;
+        return `${pad2(hour12)}:${minutes} ${h < 12 ? 'AM' : 'PM'}`;
+    }
+    return `${pad2(d.getHours())}:${minutes}`;
+}
+
+function formatCalendarDate(d, dateFormat) {
+    const day = pad2(d.getDate());
+    const month = pad2(d.getMonth() + 1);
+    return dateFormat === 'mm/dd/yyyy'
+        ? `${month}/${day}/${d.getFullYear()}`
+        : `${day}/${month}/${d.getFullYear()}`;
+}
+
+function startOfDay(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+// Mirrors how Discord labels message timestamps: today shows the bare time,
+// yesterday is spelled out, anything older gets the full date. The reference
+// point is transcript creation time, so an archived transcript keeps saying the
+// same thing no matter when it is opened.
+// Returns undefined for unusable input so callers can omit the attribute
+// entirely rather than render an empty timestamp.
+function formatMessageTimestamp(value, format, yesterdayTemplate) {
+    const d = value instanceof Date ? value : (typeof value === 'string' || typeof value === 'number' ? new Date(value) : null);
+    if (!d || !Number.isFinite(d.getTime())) return undefined;
+
+    const fmt = format && format.now instanceof Date ? format : resolveTimestampFormat(format);
+    const time = formatClock(d, fmt.timeFormat);
+    const dayDiff = Math.round((startOfDay(fmt.now) - startOfDay(d)) / 86400000);
+
+    if (dayDiff === 0) return time;
+    if (dayDiff === 1) return (yesterdayTemplate || 'Yesterday at {time}').replace('{time}', time);
+    return `${formatCalendarDate(d, fmt.dateFormat)} ${time}`;
+}
 
 function isDefined(value) {
     return value !== undefined && value !== null;

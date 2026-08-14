@@ -61,6 +61,7 @@ const defaultDicts = {
     en: {
         edited: 'edited',
         editedAt: 'Edited at {time}',
+        yesterdayAt: 'Yesterday at {time}',
         joined: 'joined the server',
         pinned: 'pinned {message} to this channel.',
         pinnedLink: 'a message',
@@ -114,6 +115,7 @@ const defaultDicts = {
     de: {
         edited: 'bearbeitet',
         editedAt: 'Bearbeitet am {time}',
+        yesterdayAt: 'Gestern um {time}',
         joined: 'ist dem Server beigetreten',
         pinned: 'hat {message} in diesem Channel angepinnt.',
         pinnedLink: 'eine Nachricht',

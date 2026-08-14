@@ -72,6 +72,18 @@ export type GenerateFromMessagesOptions<T extends ExportReturnType> = Partial<{
         template?: string;
     };
     /**
+     * Date order used whenever a message timestamp is older than yesterday
+     * (e.g. `11/08/2026 07:16`).
+     * @default 'dd/mm/yyyy'
+     */
+    dateFormat: 'dd/mm/yyyy' | 'mm/dd/yyyy';
+    /**
+     * Clock format for message timestamps — `'24h'` renders `07:16`,
+     * `'12h'` renders `07:16 AM`.
+     * @default '24h'
+     */
+    timeFormat: '24h' | '12h';
+    /**
      * UI language for the built-in strings (participant labels, filter UI, stats footer, …).
      * @default 'en'
      */

@@ -13,7 +13,6 @@ Forked from [discord-html-transcripts](https://github.com/ItzDerock/discord-html
 - **Node.js ≥ 20** — the image downloader uses `undici` v7.
 - **discord.js v14 or v15** — required peer dependency.
 - **[`sharp`](https://sharp.pixelplumbing.com/)** — *optional* peer dependency, only needed if you use `.withCompression()` to compress / convert transcript images to WebP.
-- **[`@lit-labs/ssr`](https://www.npmjs.com/package/@lit-labs/ssr) + [`lit`](https://lit.dev/)** — *optional* peer dependencies, only needed for the `hydrate: true` option.
 
 ## Install
 
@@ -21,20 +20,22 @@ Forked from [discord-html-transcripts](https://github.com/ItzDerock/discord-html
 npm install discord-html-transcripts-fix
 ```
 
-`discord.js` is the only **required** peer dependency — React, the markdown parser, etc. are installed automatically.
+`discord.js` is the only **required** peer dependency — React, Lit SSR, the markdown parser, etc. are installed automatically. `sharp` is an optional peer (image compression only).
 
-Two features are opt-in, so their dependencies are *optional* peers and are not installed by default:
+<details>
+<summary>Silencing the <code>node-domexception</code> deprecation warning on install</summary>
 
-```bash
-npm install sharp                 # only for .withCompression()
-npm install @lit-labs/ssr lit     # only for the `hydrate: true` option
+Lit SSR depends on `node-fetch`, which still pulls in the deprecated
+`fetch-blob → node-domexception` chain, so `npm install` prints:
+
+```
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
 ```
 
-Keeping Lit SSR out of the default install also keeps the deprecated
-`node-fetch → fetch-blob → node-domexception` chain (and its `npm warn deprecated`
-line) out of every install that never uses hydration. If you do install Lit SSR and
-want that warning gone as well, swap node-fetch for a dependency-free drop-in in
-**your own** `package.json` (npm only honours `overrides` in the root project):
+It is cosmetic — install-time only, never at runtime, and `npm audit` reports nothing
+for it. If you want it gone, swap `node-fetch` for a dependency-free drop-in in **your
+own** `package.json` (npm only honours `overrides` in the root project, so this cannot
+be shipped from here):
 
 ```json
 {
@@ -43,6 +44,8 @@ want that warning gone as well, swap node-fetch for a dependency-free drop-in in
   }
 }
 ```
+
+</details>
 
 ## Quick start
 
@@ -84,13 +87,40 @@ const stream = await createTranscript(channel, {
 | `filename` | `string` | `transcript-{channel-id}.html` | Output filename when returning as attachment. |
 | `saveImages` | `boolean` | `false` | Download images and inline them as base64 data URLs. |
 | `favicon` | `'guild'` \| `string` | `'guild'` | Page favicon — `'guild'` uses the server icon, or pass a URL. |
-| `hydrate` | `boolean` | `false` | Server-side hydrate via `@lit-labs/ssr` (slower; usually leave off). Requires the optional peers `@lit-labs/ssr` + `lit` — without them you get a warning and plain, non-hydrated markup. |
+| `hydrate` | `boolean` | `false` | Server-side hydrate via `@lit-labs/ssr` (slower; usually leave off). |
+| `dateFormat` | `'dd/mm/yyyy'` \| `'mm/dd/yyyy'` | `'dd/mm/yyyy'` | Date order for message timestamps older than yesterday. |
+| `timeFormat` | `'24h'` \| `'12h'` | `'24h'` | Clock format for message timestamps — `07:16` vs `07:16 AM`. |
 | `language` | `'en'` \| `'de'` | `'en'` | UI language for participant labels, filter strings, etc. |
 | `i18n` | `Partial<Record<lang, Record<key,string>>>` | — | Override individual strings per language. |
 | `statsFooter` | `false` \| `{ enabled?, template? }` | `{ enabled: true }` | Bottom stats line. See below. |
 | `footerText` | `string` | `Exported {number} message{s}.` | Legacy "Exported X messages" line. Only renders when `statsFooter` is disabled. |
 | `poweredBy` | `boolean` | `false` | Show the original "Powered by discord-html-transcripts" credit link. Only renders when `statsFooter` is disabled. |
 | `callbacks` | `{ resolveUser, resolveRole, resolveChannel, resolveImageSrc }` | — | Custom resolvers for mentions / image URLs. |
+
+### Message timestamps
+
+Timestamps are worded the way Discord words them, relative to when the transcript was
+generated:
+
+| When the message was sent | Rendered as |
+| --- | --- |
+| Today | `07:16` |
+| Yesterday | `Yesterday at 07:16` (`Gestern um 07:16` with `language: 'de'`) |
+| Anything older | `11/08/2026 07:16` |
+
+The reference point is transcript creation time, so an archived transcript keeps saying
+the same thing no matter when it is opened. The exact instant stays machine-readable in
+`data-timestamp` (epoch ms) and `data-timestamp-iso` on every `<discord-message>`.
+
+```js
+await createTranscript(channel, {
+    dateFormat: 'mm/dd/yyyy', // default 'dd/mm/yyyy'
+    timeFormat: '12h',        // default '24h'
+});
+// → "07:16 AM", "Yesterday at 10:45 PM", "08/11/2026 02:30 PM"
+```
+
+Times use the timezone of the machine generating the transcript.
 
 ### Configurable stats footer
 
@@ -221,8 +251,9 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 
 - **`react`, `react-dom`, `debug` moved into regular dependencies** so users don't install them manually (`debug` was actually a missing runtime dep in the original — `images.js` requires it)
 - **`sharp` declared as an optional peer dependency** — needed only for `.withCompression()`, no longer a hidden requirement
-- **`@lit-labs/ssr` + `lit` declared as optional peer dependencies** — needed only for `hydrate: true`. As hard dependencies they pulled the deprecated `node-fetch → fetch-blob → node-domexception` chain into every install while only ever being loaded behind that one option
+- **Discord-style message timestamps** — today shows the bare time (`07:16`), yesterday reads `Yesterday at 07:16`, anything older gets `11/08/2026 07:16`. Configurable via `dateFormat` and `timeFormat`. Previously the raw ISO string (`2026-08-14T07:16:07.422Z`) was rendered, because the web component only formats real `Date` objects and an HTML attribute always arrives as a string
 - **`hydrate: true` actually works** — the markup was handed to Lit as a plain string, which Lit HTML-escapes, so the option emitted a page of visible `&lt;!DOCTYPE html&gt;…` source text instead of a transcript
+- **`lit` added as an explicit dependency** — it was previously only reachable as a transitive dependency of `@lit-labs/ssr`, which does not resolve under pnpm's strict layout
 - **TypeScript declarations match runtime** — `ExportReturnType.Stream`, `language`, `i18n`, `stream`, and `withConcurrency()` are now exposed in the types
 - `discord.js` remains the only **required** peer dependency
 

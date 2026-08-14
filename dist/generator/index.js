@@ -27,6 +27,18 @@ const styles_1 = require("./renderers/components/styles");
 const DiscordImage_1 = require("./renderers/components/DiscordImage");
 const DiscordHighlightedCode_1 = require("./renderers/components/DiscordHighlightedCode");
 
+// Warn at most once per process when hydration is requested without @lit-labs/ssr.
+let warnedMissingLitSsr = false;
+
+// Moves <!DOCTYPE html> back to the very front of the document. Lit SSR emits
+// <!--lit-part--> markers around its result, and a comment before the doctype
+// makes browsers fall back to quirks mode.
+function hoistDoctype(markup) {
+    const match = markup.match(/<!DOCTYPE\s+html[^>]*>/i);
+    if (!match || markup.startsWith(match[0])) return markup;
+    return match[0] + markup.slice(0, match.index) + markup.slice(match.index + match[0].length);
+}
+
 // Lock to an exact resolved version — semver ranges in src= aren't cacheable by CDNs.
 let discordComponentsVersion = '4.0.2';
 try {
@@ -175,10 +187,41 @@ async function render(_a) {
 
     if (options.hydrate) {
         const markup = await (0, utils_1.streamToString)(prelude);
-        const { render: renderLit } = await import('@lit-labs/ssr');
-        const result = renderLit(markup);
-        const { collectResult } = await import('@lit-labs/ssr/lib/render-result.js');
-        return await collectResult(result);
+        // @lit-labs/ssr is an optional peer dependency (same treatment as sharp):
+        // it is only ever needed for `hydrate: true`, and declaring it as a hard
+        // dependency dragged the deprecated node-fetch → fetch-blob →
+        // node-domexception chain into every single install. When it is absent we
+        // fall back to the non-SSR'd markup — still a fully working transcript,
+        // because the <discord-*> definitions are loaded from the CDN module tag
+        // above regardless of this branch.
+        try {
+            const { render: renderLit } = await import('@lit-labs/ssr');
+            const { html: litHtml } = await import('lit');
+            const { unsafeHTML } = await import('lit/directives/unsafe-html.js');
+            const { collectResult } = await import('@lit-labs/ssr/lib/render-result.js');
+            // `markup` must go through unsafeHTML: handing lit a bare string makes
+            // it a text value, which lit HTML-escapes — that turned the whole
+            // transcript into visible &lt;!DOCTYPE html&gt;… source text.
+            const result = renderLit(litHtml`${unsafeHTML(markup)}`);
+            const rendered = await collectResult(result);
+            // lit wraps its output in <!--lit-part--> markers. Any comment ahead of
+            // the doctype pushes browsers into quirks mode and wrecks the layout,
+            // so the doctype has to lead the document again.
+            return hoistDoctype(rendered);
+        }
+        catch (err) {
+            // Only a missing module triggers the fallback — a genuine render
+            // failure must still surface instead of being silently swallowed.
+            const code = err && err.code;
+            if (code !== 'ERR_MODULE_NOT_FOUND' && code !== 'MODULE_NOT_FOUND') throw err;
+            if (!warnedMissingLitSsr) {
+                warnedMissingLitSsr = true;
+                console.warn('[discord-html-transcripts-fix] `hydrate: true` needs the optional peer dependencies ' +
+                    '@lit-labs/ssr and lit, which are not installed. Returning non-hydrated markup — the transcript ' +
+                    'still renders correctly. Run `npm i @lit-labs/ssr lit` to enable hydration.');
+            }
+            return markup;
+        }
     }
 
     if (options.returnType === 'stream' || options.stream) {

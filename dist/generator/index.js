@@ -20,24 +20,14 @@ const static_1 = require("react-dom/static");
 const buildProfiles_1 = require("../utils/buildProfiles");
 const client_1 = require("../static/client");
 const fs_1 = require("fs");
+const stream_1 = require("stream");
 const path_1 = __importDefault(require("path"));
+const selfContained_1 = require("../utils/selfContained");
 const transcript_1 = __importDefault(require("./transcript"));
 const utils_1 = require("../utils/utils");
 const styles_1 = require("./renderers/components/styles");
 const DiscordImage_1 = require("./renderers/components/DiscordImage");
 const DiscordHighlightedCode_1 = require("./renderers/components/DiscordHighlightedCode");
-
-// Warn at most once per process when hydration is requested without @lit-labs/ssr.
-let warnedMissingLitSsr = false;
-
-// Moves <!DOCTYPE html> back to the very front of the document. Lit SSR emits
-// <!--lit-part--> markers around its result, and a comment before the doctype
-// makes browsers fall back to quirks mode.
-function hoistDoctype(markup) {
-    const match = markup.match(/<!DOCTYPE\s+html[^>]*>/i);
-    if (!match || markup.startsWith(match[0])) return markup;
-    return match[0] + markup.slice(0, match.index) + markup.slice(match.index + match[0].length);
-}
 
 // Lock to an exact resolved version — semver ranges in src= aren't cacheable by CDNs.
 let discordComponentsVersion = '4.0.2';
@@ -192,44 +182,31 @@ async function render(_a) {
 
     const { prelude } = await (0, static_1.prerenderToNodeStream)(docTree);
 
-    if (options.hydrate) {
-        const markup = await (0, utils_1.streamToString)(prelude);
-        // @lit-labs/ssr and lit are regular dependencies, so this normally always
-        // resolves. The guard only covers a broken or partial install: instead of
-        // failing the whole export we fall back to the non-SSR'd markup, which is
-        // still a fully working transcript because the <discord-*> definitions are
-        // loaded from the CDN module tag above regardless of this branch.
-        try {
-            const { render: renderLit } = await import('@lit-labs/ssr');
-            const { html: litHtml } = await import('lit');
-            const { unsafeHTML } = await import('lit/directives/unsafe-html.js');
-            const { collectResult } = await import('@lit-labs/ssr/lib/render-result.js');
-            // `markup` must go through unsafeHTML: handing lit a bare string makes
-            // it a text value, which lit HTML-escapes — that turned the whole
-            // transcript into visible &lt;!DOCTYPE html&gt;… source text.
-            const result = renderLit(litHtml`${unsafeHTML(markup)}`);
-            const rendered = await collectResult(result);
-            // lit wraps its output in <!--lit-part--> markers. Any comment ahead of
-            // the doctype pushes browsers into quirks mode and wrecks the layout,
-            // so the doctype has to lead the document again.
-            return hoistDoctype(rendered);
-        }
-        catch (err) {
-            // Only a missing module triggers the fallback — a genuine render
-            // failure must still surface instead of being silently swallowed.
-            const code = err && err.code;
-            if (code !== 'ERR_MODULE_NOT_FOUND' && code !== 'MODULE_NOT_FOUND') throw err;
-            if (!warnedMissingLitSsr) {
-                warnedMissingLitSsr = true;
-                console.warn('[discord-html-transcripts-fix] `hydrate: true` could not load @lit-labs/ssr / lit, ' +
-                    'although both ship as dependencies of this package. Returning non-hydrated markup — the ' +
-                    'transcript still renders correctly. Reinstalling your dependencies should fix this.');
-            }
-            return markup;
-        }
+    // `hydrate` used to additionally push the finished markup through
+    // @lit-labs/ssr. That round-trip was measured to contribute exactly four
+    // inert <!--lit-part--> comments and nothing else — the page never loads a
+    // lit hydration client, and the <discord-*> elements hydrate themselves once
+    // their definitions are registered. Two dependencies (and the deprecated
+    // node-fetch → fetch-blob → node-domexception chain they dragged along) for
+    // four comments was a bad trade, so the round-trip is gone. The option keeps
+    // its real effect: it enables the spoiler-reveal script emitted above.
+    const wantsStream = options.returnType === 'stream' || options.stream;
+
+    if (options.inlineAssets) {
+        // Inlining rewrites the finished document, so it cannot be streamed as it
+        // is produced. The stream contract is still honoured — the buffered result
+        // is handed back as a Readable.
+        const markup = await (0, selfContained_1.inlineExternalAssets)(await (0, utils_1.streamToString)(prelude), {
+            timeout: options.inlineAssetsTimeout,
+        });
+        return wantsStream ? stream_1.Readable.from([markup]) : markup;
     }
 
-    if (options.returnType === 'stream' || options.stream) {
+    if (options.hydrate) {
+        return await (0, utils_1.streamToString)(prelude);
+    }
+
+    if (wantsStream) {
         // Return the underlying Node stream — caller is responsible for piping.
         return prelude;
     }

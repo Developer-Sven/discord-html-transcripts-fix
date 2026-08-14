@@ -14,38 +14,20 @@ Forked from [discord-html-transcripts](https://github.com/ItzDerock/discord-html
 - **discord.js v14 or v15** — required peer dependency.
 - **[`sharp`](https://sharp.pixelplumbing.com/)** — *optional* peer dependency, only needed if you use `.withCompression()` to compress / convert transcript images to WebP.
 
+The **generated HTML** additionally reaches out to third-party CDNs when it is *opened*
+— jsDelivr for the `<discord-*>` component runtime and cdnjs for Twemoji SVGs. Set
+[`inlineAssets: true`](#self-contained-transcripts) to embed them and get a file that
+renders offline.
+
 ## Install
 
 ```bash
 npm install discord-html-transcripts-fix
 ```
 
-`discord.js` is the only **required** peer dependency — React, Lit SSR, the markdown parser, etc. are installed automatically. `sharp` is an optional peer (image compression only).
+`discord.js` is the only **required** peer dependency — React, the markdown parser, etc. are installed automatically. `sharp` is an optional peer (image compression only).
 
-<details>
-<summary>Silencing the <code>node-domexception</code> deprecation warning on install</summary>
-
-Lit SSR depends on `node-fetch`, which still pulls in the deprecated
-`fetch-blob → node-domexception` chain, so `npm install` prints:
-
-```
-npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
-```
-
-It is cosmetic — install-time only, never at runtime, and `npm audit` reports nothing
-for it. If you want it gone, swap `node-fetch` for a dependency-free drop-in in **your
-own** `package.json` (npm only honours `overrides` in the root project, so this cannot
-be shipped from here):
-
-```json
-{
-  "overrides": {
-    "node-fetch": "npm:node-fetch-native@^1.6.7"
-  }
-}
-```
-
-</details>
+The install is clean: no deprecation warnings and no `npm audit` findings.
 
 ## Quick start
 
@@ -87,7 +69,9 @@ const stream = await createTranscript(channel, {
 | `filename` | `string` | `transcript-{channel-id}.html` | Output filename when returning as attachment. |
 | `saveImages` | `boolean` | `false` | Download images and inline them as base64 data URLs. |
 | `favicon` | `'guild'` \| `string` | `'guild'` | Page favicon — `'guild'` uses the server icon, or pass a URL. |
-| `hydrate` | `boolean` | `false` | Server-side hydrate via `@lit-labs/ssr` (slower; usually leave off). |
+| `hydrate` | `boolean` | `false` | Enables the client-side spoiler-reveal script. |
+| `inlineAssets` | `boolean` | `false` | Embed the component runtime and emoji so the file renders offline. See below. |
+| `inlineAssetsTimeout` | `number` | `30000` | Per-request timeout in ms while downloading those assets. |
 | `dateFormat` | `'dd/mm/yyyy'` \| `'mm/dd/yyyy'` | `'dd/mm/yyyy'` | Date order for message timestamps older than yesterday. |
 | `timeFormat` | `'24h'` \| `'12h'` | `'24h'` | Clock format for message timestamps — `07:16` vs `07:16 AM`. |
 | `language` | `'en'` \| `'de'` | `'en'` | UI language for participant labels, filter strings, etc. |
@@ -96,6 +80,36 @@ const stream = await createTranscript(channel, {
 | `footerText` | `string` | `Exported {number} message{s}.` | Legacy "Exported X messages" line. Only renders when `statsFooter` is disabled. |
 | `poweredBy` | `boolean` | `false` | Show the original "Powered by discord-html-transcripts" credit link. Only renders when `statsFooter` is disabled. |
 | `callbacks` | `{ resolveUser, resolveRole, resolveChannel, resolveImageSrc }` | — | Custom resolvers for mentions / image URLs. |
+
+### Self-contained transcripts
+
+By default the rendered file is not standalone: opening it fetches the `<discord-*>`
+component runtime from jsDelivr and the emoji SVGs from cdnjs. Offline, on a network
+that blocks those CDNs, or after a CDN outage the transcript renders unstyled — and
+every viewer's IP reaches both CDNs, which can matter for archived tickets.
+
+```js
+await createTranscript(channel, {
+    inlineAssets: true,
+    saveImages: true, // also inlines Discord's avatars/attachments
+});
+```
+
+`inlineAssets` embeds the component runtime and every emoji used, so the file opens
+with **zero external requests**. Verified in a browser: the inlined transcript renders
+identically to the CDN version (same layout, same shadow DOM), loading 35 modules from
+`blob:` URLs and nothing from the network.
+
+| | Default | `inlineAssets: true` |
+| --- | --- | --- |
+| File size | ~72 kB | ~620 kB |
+| External hosts on open | jsDelivr, cdnjs, Discord CDN | Discord CDN only (none with `saveImages`) |
+| Works offline | no | yes |
+
+The download happens once per process and is cached, so the first transcript pays
+about a second and later ones are unaffected. If an asset cannot be fetched the CDN
+reference is kept and a warning is logged — the export never fails over this. Use
+`inlineAssetsTimeout` (default `30000` ms) to bound the downloads.
 
 ### Message timestamps
 
@@ -253,7 +267,8 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **`sharp` declared as an optional peer dependency** — needed only for `.withCompression()`, no longer a hidden requirement
 - **Discord-style message timestamps** — today shows the bare time (`07:16`), yesterday reads `Yesterday at 07:16`, anything older gets `11/08/2026 07:16`. Configurable via `dateFormat` and `timeFormat`. Previously the raw ISO string (`2026-08-14T07:16:07.422Z`) was rendered, because the web component only formats real `Date` objects and an HTML attribute always arrives as a string
 - **`hydrate: true` actually works** — the markup was handed to Lit as a plain string, which Lit HTML-escapes, so the option emitted a page of visible `&lt;!DOCTYPE html&gt;…` source text instead of a transcript
-- **`lit` added as an explicit dependency** — it was previously only reachable as a transitive dependency of `@lit-labs/ssr`, which does not resolve under pnpm's strict layout
+- **`@lit-labs/ssr` and `lit` removed entirely** — the `hydrate` path pushed the finished markup through Lit SSR, which was measured to contribute exactly four inert `<!--lit-part-->` comments and nothing else, since the page never loads a Lit hydration client. Two dependencies and the deprecated `node-fetch → fetch-blob → node-domexception` chain for four comments. `hydrate: true` keeps its real effect (the spoiler-reveal script), and the install is now warning-free
+- **`inlineAssets` option** — embeds the component runtime and emoji so a transcript renders with zero external requests
 - **TypeScript declarations match runtime** — `ExportReturnType.Stream`, `language`, `i18n`, `stream`, and `withConcurrency()` are now exposed in the types
 - `discord.js` remains the only **required** peer dependency
 

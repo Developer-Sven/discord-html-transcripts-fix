@@ -72,6 +72,29 @@ export type GenerateFromMessagesOptions<T extends ExportReturnType> = Partial<{
         template?: string;
     };
     /**
+     * Embed the third-party assets the transcript would otherwise load from a CDN
+     * at view time — the `<discord-*>` web component runtime (from jsDelivr) and
+     * the Twemoji SVGs (from cdnjs) — directly into the HTML.
+     *
+     * Without this the file needs internet access whenever it is *opened*: offline,
+     * behind a CDN-blocking network or after a CDN outage the transcript renders
+     * unstyled. It also means every viewer's IP reaches those CDNs, which may
+     * matter for GDPR-sensitive ticket archives.
+     *
+     * Costs roughly +550 kB per file and one download at generation time (cached
+     * per process). Discord's own CDN is untouched — use `saveImages` for that.
+     *
+     * Never fails the export: if an asset cannot be fetched, the CDN reference is
+     * kept and a warning is logged.
+     * @default false
+     */
+    inlineAssets: boolean;
+    /**
+     * Per-request timeout in ms while downloading the assets for `inlineAssets`.
+     * @default 30000
+     */
+    inlineAssetsTimeout: number;
+    /**
      * Date order used whenever a message timestamp is older than yesterday
      * (e.g. `11/08/2026 07:16`).
      * @default 'dd/mm/yyyy'

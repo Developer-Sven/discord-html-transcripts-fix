@@ -20,10 +20,10 @@ const { createWorld, at, IDS } = require('./helpers/world');
  * island in <head> that feeds the profile cards. `body` is the visible page without
  * React's `<!-- -->` text separators, which are a detail of the renderer, not output.
  */
-async function render(t, build) {
+async function render(t, build, options = {}) {
     const world = createWorld();
     t.after(() => world.destroy());
-    const html = await generateFromMessages(build(world), world.channel, { returnType: ExportReturnType.String });
+    const html = await generateFromMessages(build(world), world.channel, { returnType: ExportReturnType.String, ...options });
     assert.ok(!html.includes('failed to render'), 'a fixture message failed to render');
     const body = html.slice(html.indexOf('<body')).replace(/<!-- -->/g, '');
     const data = JSON.parse(html.match(/<script id="dht-data"[^>]*>([\s\S]*?)<\/script>/)[1]);
@@ -210,6 +210,52 @@ test('a forward renders its content and names the source channel of this server'
     assert.match(body, /<span data-i18n="forwardedFrom">Forwarded from<\/span><strong> #general<\/strong>/);
     assert.match(body, /FORWARDED <strong>body/);
     assert.match(body, /fwd\.png/);
+});
+
+test('a forwarded image is archived like any other with saveImages or a custom resolver', async (t) => {
+    const archived = 'data:image/png;base64,QVJDSElWRUQ=';
+    const seen = [];
+    const { body, data } = await render(t, (w) => [w.message({
+        createdAt: at(0, 9, 33),
+        content: '',
+        flags: 1 << 14,
+        message_reference: { type: 1, message_id: '1100000000000088810', channel_id: IDS.otherChannel, guild_id: IDS.guild },
+        message_snapshots: [{ message: forwardSnapshot }],
+    })], { callbacks: { resolveImageSrc: async (attachment) => { seen.push(attachment.name); return archived; } } });
+    assert.deepEqual(seen, ['fwd.png'], 'the forwarded attachment went through the resolver');
+    assert.ok(tags(body, 'img').some((img) => img.get('src') === archived));
+    assert.equal(tags(body, 'img').some((img) => img.get('src')?.includes('/fwd.png')), false, 'no hot-linked copy is left');
+    assert.equal(data.stats.imageCount, 1, 'the stats footer counts it');
+    const [message] = tags(body, 'discord-message');
+    assert.equal(message.get('data-has-image'), 'true', 'the image filter finds it');
+});
+
+test('a forwarded embed, its components and its media count like the message\'s own', async (t) => {
+    const { body } = await render(t, (w) => [w.message({
+        createdAt: at(0, 9, 34),
+        content: '',
+        flags: 1 << 14,
+        message_reference: { type: 1, message_id: '1100000000000088811', channel_id: IDS.otherChannel, guild_id: IDS.guild },
+        message_snapshots: [{
+            message: {
+                ...forwardSnapshot,
+                content: '',
+                attachments: [],
+                flags: 1 << 15,
+                embeds: [{ type: 'rich', title: 'Ticket closed', description: 'Closed by **staff**', fields: [{ name: 'Reason', value: 'solved', inline: false }] }],
+                components: [{ type: 17, components: [{ type: 10, content: 'Components V2 body' }] }],
+            },
+        }],
+    })]);
+    const [embed] = tags(body, 'discord-embed');
+    assert.equal(embed.get('embed-title'), 'Ticket closed');
+    assert.match(body, /Closed by <strong>staff/);
+    assert.match(body, /Reason/);
+    assert.doesNotMatch(body, /dht-forwarded-embeds/, 'not just a "1 embed" count');
+    assert.match(body, /Components V2 body/);
+    const [message] = tags(body, 'discord-message');
+    assert.equal(message.get('data-has-embed'), 'true');
+    assert.equal(message.get('data-has-component-v2'), 'true');
 });
 
 test('a forward never names the original author, even when the bot has the original cached', async (t) => {

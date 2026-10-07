@@ -39,16 +39,26 @@ try {
     if (/^\d+\.\d+\.\d+/.test(cleaned)) discordComponentsVersion = cleaned;
 } catch (_b) { /* ignore */ }
 
+// Images of a message, including those it forwards — they are part of the transcript too.
+function countImages(m, depth = 0) {
+    let n = 0;
+    if (m?.attachments && typeof m.attachments.forEach === 'function') {
+        m.attachments.forEach((a) => {
+            if (typeof a?.contentType === 'string' && a.contentType.startsWith('image/')) n++;
+        });
+    }
+    if (depth < 5 && m?.messageSnapshots && typeof m.messageSnapshots.forEach === 'function') {
+        m.messageSnapshots.forEach((snap) => { n += countImages(snap?.message || snap, depth + 1); });
+    }
+    return n;
+}
+
 function computeStats(messages) {
     let images = 0;
     let humans = new Set();
     let firstTs = null, lastTs = null;
     for (const m of messages) {
-        if (m.attachments && m.attachments.forEach) {
-            m.attachments.forEach((a) => {
-                if (typeof a.contentType === 'string' && a.contentType.startsWith('image/')) images++;
-            });
-        }
+        images += countImages(m);
         if (m.author && !m.author.bot) humans.add(m.author.id);
         const ts = m.createdAt instanceof Date ? m.createdAt.getTime() : (snowflakeToDate(m.id)?.getTime() || null);
         if (ts) {
@@ -302,6 +312,7 @@ discord-action-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin
 .dht-forwarded-icon{margin-right:4px}
 .dht-forwarded-body{color:#dbdee1}
 .dht-forwarded-attachments{margin-top:4px;font-size:11px;color:#949ba4}
+.dht-forwarded-media{margin-top:4px}
 .dht-edit-history{font-size:12px;color:#b5bac1;margin-top:4px}
 .dht-edit-history summary{cursor:pointer;color:#949ba4}
 .dht-edit-history li{margin-top:4px}

@@ -229,7 +229,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Action rows** — buttons with proper spacing and Discord-style colors (`primary`, `secondary`, `success`, `destructive`)
 - **Stickers** — PNG, APNG, GIF, Lottie placeholder
 - **Polls** — question, answer bars with vote counts and percentages, expiry
-- **Forwarded messages** (`messageSnapshots`) — quoted-block style naming the source channel (same server only, and never the original author, which Discord hides), recursive nesting; a forward whose snapshot is missing is marked as unavailable
+- **Forwarded messages** (`messageSnapshots`) — quoted-block style with their text, attachments, embeds and components, naming the source channel (same server only, and never the original author, which Discord hides), recursive nesting; a forward whose snapshot is missing is marked as unavailable
 - **Voice messages** — `🎤` indicator, inline SVG waveform from `attachment.waveform`, duration
 - **Pinned messages** — Discord-style amber left rail (no extra icon clutter)
 - **Slash command interactions** — `{user} used /cmd` header + clickable pill that reveals parameters
@@ -269,6 +269,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Fix** `inlineAssets` + stream yields Buffer chunks like every other stream (a single string chunk broke `Buffer.concat`)
 - **Fix** invalid `dateFormat` / `timeFormat` / `inlineAssetsTimeout` values are reported instead of silently replaced; case and numeric strings are tolerated
 - **Fix** forwarded messages show their content — discord.js hands over `messageSnapshots` as a Collection, and an array check left every forward empty ("Message could not be loaded."). A forward is no longer mistaken for a reply or a cross-server message (on discord.js before 14.16 too), its header names the source channel when that channel is on the same server, and a forward whose snapshot is missing says so. The original author is never shown, as in Discord, even though discord.js hands it over when the bot has the original message cached
+- **Fix** forwarded messages show their embeds and Components V2 content in full instead of a "1 embed" count, and forwarded images go through `saveImages` / `resolveImageSrc` like any other instead of staying on Discord's expiring CDN links. They also count in the stats footer and for the image, attachment and embed filters
 - **Fix** link previews, GIFs (`gifv`) and video embeds get their own layout — discord.js keeps the embed type only in `embed.data`, so every embed rendered as `rich` and an image preview showed up as an empty card with a small thumbnail
 - **Fix** super reactions and voice-message durations show — the renderer read the raw API names (`count_details`, `burst_colors`, `duration_secs`), which discord.js renames
 - **Fix** reply authors get their role color, and embed footer icons and audio file sizes show — the values were passed as camelCase attributes, which HTML lowercases, so the components never received them. Members without a colored role are no longer painted black

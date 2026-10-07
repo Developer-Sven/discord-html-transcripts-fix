@@ -392,12 +392,16 @@ function renderSnapshots(snapshots, context, depth = 0, source = null) {
             // cached, the snapshot IS the original — author included, even from
             // another server. Only plain-object input, whose author the caller
             // supplied on purpose, may name one.
-            const author = (0, utils_1.isLibraryStructure)(m) ? null : (m?.author?.displayName || m?.author?.username || null);
+            const fromLibrary = (0, utils_1.isLibraryStructure)(m);
+            const author = fromLibrary ? null : (m?.author?.displayName || m?.author?.username || null);
             const origin = author || source;
             const text = m?.content || '';
             const attachments = toArray(m?.attachments);
             const nested = toArray(m?.messageSnapshots);
             const embeds = toArray(m?.embeds);
+            // Raw component shapes are not what the component renderer is written
+            // for, so plain-object input keeps showing only what it showed before.
+            const components = fromLibrary ? toArray(m?.components) : [];
             const stickers = toArray(m?.stickers).map((s) => ({
                 id: s.id,
                 name: s.name,
@@ -415,7 +419,11 @@ function renderSnapshots(snapshots, context, depth = 0, source = null) {
                     origin && (0, jsx_runtime_1.jsx)("strong", { children: ' ' + origin }),
                 ] }),
                 text && (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded-body", children: (0, jsx_runtime_1.jsx)(content_1.default, { content: text, context: Object.assign({}, context, { type: content_1.RenderType.NORMAL }) }) }),
-                attachments.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-attachments", children: [
+                // discord.js attachments take the same path as a message's own, so
+                // saveImages and a custom resolveImageSrc archive forwarded images too
+                // instead of leaving them on Discord's expiring CDN links.
+                fromLibrary && attachments.length > 0 && (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded-media", children: (0, jsx_runtime_1.jsx)(attachment_1.Attachments, { message: m, context: context }) }),
+                !fromLibrary && attachments.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-attachments", children: [
                     (0, jsx_runtime_1.jsxs)("strong", { children: ['📎 ', attachments.length, ' attachment', attachments.length !== 1 ? 's' : '', ':'] }),
                     (0, jsx_runtime_1.jsx)("ul", { children: attachments.map((a, ai) => {
                         const safeUrl = (0, utils_1.safeHref)(a.url);
@@ -427,7 +435,10 @@ function renderSnapshots(snapshots, context, depth = 0, source = null) {
                     }) })
                 ] }),
                 stickers.length > 0 && renderStickers(stickers),
-                embeds.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-embeds", children: ['📑 ', embeds.length, ' embed', embeds.length !== 1 ? 's' : ''] }),
+                // Forwarded embeds and components render in full, like Discord shows them.
+                fromLibrary && embeds.length > 0 && (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded-media", children: embeds.map((embed, ei) => (0, jsx_runtime_1.jsx)(embed_1.DiscordEmbed, { embed: embed, context: Object.assign({}, context, { index: ei, message: m }) }, ei)) }),
+                !fromLibrary && embeds.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-embeds", children: ['📑 ', embeds.length, ' embed', embeds.length !== 1 ? 's' : ''] }),
+                components.length > 0 && (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded-media", children: (0, jsx_runtime_1.jsx)("discord-attachments", { children: components.map((component, ci) => (0, jsx_runtime_1.jsx)(components_1.default, { id: ci, component: component, context: context }, ci)) }) }),
                 nested.length > 0 && renderSnapshots(nested, context, depth + 1),
             ] }, i);
         })
@@ -445,8 +456,7 @@ const FLAG_IS_COMPONENTS_V2 = 1 << 15;
 // Walks message.embeds and message.components to determine whether the message
 // carries media or V2 containers — used to drive the filter checkboxes
 // (data-has-image, data-has-attachment, data-has-embed, data-has-component-v2).
-function detectMediaFlags(message) {
-    const out = { hasImage: false, hasAttachment: false, hasEmbed: false, hasComponentV2: false };
+function detectMediaFlags(message, out = { hasImage: false, hasAttachment: false, hasEmbed: false, hasComponentV2: false }, depth = 0) {
 
     // Direct attachments
     if (message.attachments && typeof message.attachments.values === 'function') {
@@ -501,6 +511,14 @@ function detectMediaFlags(message) {
         }
     };
     if (Array.isArray(message.components)) for (const c of message.components) walk(c);
+
+    // What a forward carries counts for the "has image/attachment/embed" filters too.
+    if (depth < 5) {
+        for (const snap of toArray(message.messageSnapshots)) {
+            const inner = snap?.message || snap;
+            if (inner) detectMediaFlags(inner, out, depth + 1);
+        }
+    }
 
     return out;
 }

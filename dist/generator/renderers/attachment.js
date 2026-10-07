@@ -37,8 +37,10 @@ async function Attachment({ attachment, context, message }) {
             return (0, jsx_runtime_1.jsx)("discord-video-attachment", { slot: "attachments", href: url }, attachment.id);
         }
         case types_1.AttachmentTypes.Audio: {
-            // Voice messages have waveform + duration_secs — message.js renders the indicator
-            return (0, jsx_runtime_1.jsx)("discord-audio-attachment", { slot: "attachments", href: url, bytes: bytes, bytesUnit: bytesUnit, name: attachment.name, title: attachment.description || undefined }, attachment.id);
+            // Voice messages have waveform + duration_secs — message.js renders the indicator.
+            // "bytes-unit", like the file attachment below: HTML lowercases attribute
+            // names, and `bytesUnit` arrived as `bytesunit`, which is not observed.
+            return (0, jsx_runtime_1.jsx)("discord-audio-attachment", { slot: "attachments", href: url, bytes: bytes, "bytes-unit": bytesUnit, name: attachment.name, title: attachment.description || undefined }, attachment.id);
         }
         case types_1.AttachmentTypes.File: {
             return (0, jsx_runtime_1.jsx)("discord-file-attachment", { slot: "attachments", href: url, bytes: bytes, "bytes-unit": bytesUnit, name: attachment.name, title: attachment.description || undefined }, attachment.id);

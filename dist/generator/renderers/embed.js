@@ -16,13 +16,24 @@ function t(context, key, fallback) {
 }
 
 async function DiscordEmbed({ embed, context }) {
-    const type = embed.type || 'rich';
+    // discord.js' Embed class has no `type` getter; the type only lives on the raw
+    // payload in `embed.data`. Reading `embed.type` alone made every embed 'rich'
+    // in production, so link previews, GIFs and videos never got their own layout.
+    // Plain-object embeds without `data` keep working through the fallback.
+    const type = embed.data?.type ?? embed.type ?? 'rich';
     const url = embed.url ? (0, utils_1.safeHref)(embed.url) : undefined;
-    const imageUrl = embed.image?.proxyURL ?? embed.image?.url;
+    // Image previews, GIFs and videos carry their picture in `thumbnail`; only rich
+    // embeds use `image` for it.
+    const preview = type === 'image' || type === 'gifv' || type === 'video' ? embed.thumbnail : null;
+    const ownImageUrl = embed.image?.proxyURL ?? embed.image?.url;
+    const imageUrl = ownImageUrl ?? preview?.proxyURL ?? preview?.url;
     const videoUrl = embed.video?.proxyURL ?? embed.video?.url;
     const provider = embed.provider?.name;
     const safeVid = videoUrl ? (0, utils_1.safeHref)(videoUrl) : null;
     const safeImg = imageUrl ? (0, utils_1.safeHref)(imageUrl) : null;
+    // The rich card already shows `thumbnail` itself, so a preview that falls
+    // through to it (a GIF without a video, say) must not appear twice.
+    const safeOwnImg = ownImageUrl ? (0, utils_1.safeHref)(ownImageUrl) : null;
 
     // Image-only embeds (link previews): render the image alone with optional caption
     if (type === 'image' && safeImg) {
@@ -59,7 +70,7 @@ async function DiscordEmbed({ embed, context }) {
         "author-name": authorName,
         "author-url": authorUrl,
         color: color,
-        image: safeImg,
+        image: safeOwnImg,
         thumbnail: thumb,
         url: url,
         children: [
@@ -75,7 +86,10 @@ async function DiscordEmbed({ embed, context }) {
             safeVid && ((0, jsx_runtime_1.jsx)("div", { className: "dht-embed-video", children: (0, jsx_runtime_1.jsxs)("a", { href: safeVid, target: "_blank", rel: "noreferrer", children: ['▶ Open video', provider ? ` (${provider})` : ''] }) })),
             embed.footer && ((0, jsx_runtime_1.jsx)("discord-embed-footer", {
                 slot: "footer",
-                footerImage: embed.footer.proxyIconURL ?? embed.footer.iconURL,
+                // Attribute names are lowercased by HTML; `footerImage` arrived as
+                // `footerimage`, which the component does not observe, so footer
+                // icons never showed.
+                "footer-image": embed.footer.proxyIconURL ?? embed.footer.iconURL,
                 timestamp: (0, utils_1.formatMessageTimestamp)(embed.timestamp, context?.timestampFormat, t(context, 'yesterdayAt', 'Yesterday at {time}')),
                 children: embed.footer.text
             }))

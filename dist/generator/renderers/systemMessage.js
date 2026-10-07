@@ -145,14 +145,19 @@ async function SystemMessage({ message, context }) {
             const matchedKeyword = fields.find((f) => /matched_keyword|keyword/i.test(f.name))?.value || '';
             const action = fields.find((f) => /action_type|action/i.test(f.name))?.value || '';
             const blocked = e?.description || '';
-            const channelId = fields.find((f) => /channel/i.test(f.name))?.value;
+            const channelField = fields.find((f) => /channel/i.test(f.name))?.value;
+            // A bare id in today's payloads; tolerate the <#id> mention form as well.
+            const channelId = channelField ? String(channelField).match(/\d{17,20}/)?.[0] ?? String(channelField) : null;
+            // The raw `<#id>` mention syntax used to be printed verbatim; name the
+            // channel when this server knows it.
+            const automodChannel = channelId ? message.guild?.channels?.cache?.get(channelId) : null;
             return ((0, jsx_runtime_1.jsxs)("discord-system-message", { id: `m-${message.id}`, timestamp: ts, type: "boost", children: [
                 (0, jsx_runtime_1.jsx)("span", { "data-i18n": "autoModBlocked", children: t(ctx, 'autoModBlocked', 'AutoMod blocked a message.') }),
                 ruleName && (0, jsx_runtime_1.jsxs)("span", { className: "dht-automod-rule", children: [' · Rule: ', (0, jsx_runtime_1.jsx)("strong", { children: ruleName })] }),
                 action && (0, jsx_runtime_1.jsxs)("span", { className: "dht-automod-rule", children: [' · Action: ', action] }),
                 matchedKeyword && (0, jsx_runtime_1.jsxs)("span", { className: "dht-automod-rule", children: [' · Matched: ', (0, jsx_runtime_1.jsx)("code", { children: matchedKeyword })] }),
                 blocked && (0, jsx_runtime_1.jsx)("blockquote", { className: "dht-automod-content", children: blocked }),
-                channelId && (0, jsx_runtime_1.jsxs)("span", { className: "dht-automod-rule", children: [' · In <#', channelId, '>'] }),
+                channelId && (0, jsx_runtime_1.jsxs)("span", { className: "dht-automod-rule", children: [' · In #', automodChannel?.name || channelId] }),
             ] }, message.id));
         }
         case discord_js_1.MessageType.StageStart:

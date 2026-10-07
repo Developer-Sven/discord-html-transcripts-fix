@@ -136,7 +136,7 @@ async function MessageSingleASTNode({ node, context }) {
     try {
         return await renderASTNode(node, context);
     } catch (err) {
-        console.warn('[discord-html-transcripts-fix] AST node render failed:', err && err.message ? err.message : err);
+        console.warn('[discord-html-transcripts-fix] AST node render failed:', err);
         try {
             if (typeof node.content === 'string') return node.content;
             if (Array.isArray(node.content)) return (0, jsx_runtime_1.jsx)(MessageASTNodes, { nodes: node.content, context });

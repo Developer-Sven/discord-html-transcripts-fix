@@ -229,7 +229,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Action rows** — buttons with proper spacing and Discord-style colors (`primary`, `secondary`, `success`, `destructive`)
 - **Stickers** — PNG, APNG, GIF, Lottie placeholder
 - **Polls** — question, answer bars with vote counts and percentages, expiry
-- **Forwarded messages** (`messageSnapshots`) — quoted-block style with original author, recursive nesting
+- **Forwarded messages** (`messageSnapshots`) — quoted-block style naming the source channel (same server only, and never the original author, which Discord hides), recursive nesting; a forward whose snapshot is missing is marked as unavailable
 - **Voice messages** — `🎤` indicator, inline SVG waveform from `attachment.waveform`, duration
 - **Pinned messages** — Discord-style amber left rail (no extra icon clutter)
 - **Slash command interactions** — `{user} used /cmd` header + clickable pill that reveals parameters
@@ -268,6 +268,12 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Fix** `inlineAssets` hardened now that it actually runs: reaction emoji render as images instead of base64 text, user-typed URLs are never rewritten, the timeout also bounds connection setup, a CDN outage is not waited out per file, error pages are never embedded or cached, and a bug in the inliner is no longer reported as a CDN problem
 - **Fix** `inlineAssets` + stream yields Buffer chunks like every other stream (a single string chunk broke `Buffer.concat`)
 - **Fix** invalid `dateFormat` / `timeFormat` / `inlineAssetsTimeout` values are reported instead of silently replaced; case and numeric strings are tolerated
+- **Fix** forwarded messages show their content — discord.js hands over `messageSnapshots` as a Collection, and an array check left every forward empty ("Message could not be loaded."). A forward is no longer mistaken for a reply or a cross-server message (on discord.js before 14.16 too), its header names the source channel when that channel is on the same server, and a forward whose snapshot is missing says so. The original author is never shown, as in Discord, even though discord.js hands it over when the bot has the original message cached
+- **Fix** link previews, GIFs (`gifv`) and video embeds get their own layout — discord.js keeps the embed type only in `embed.data`, so every embed rendered as `rich` and an image preview showed up as an empty card with a small thumbnail
+- **Fix** super reactions and voice-message durations show — the renderer read the raw API names (`count_details`, `burst_colors`, `duration_secs`), which discord.js renames
+- **Fix** reply authors get their role color, and embed footer icons and audio file sizes show — the values were passed as camelCase attributes, which HTML lowercases, so the components never received them. Members without a colored role are no longer painted black
+- **Fix** select menu options show their emoji instead of its URL as text, and AutoMod alerts name the channel instead of printing `<#id>` (its id remains when the server does not know it)
+- **Fix** profile cards no longer depend on the order users appear in: someone first seen without member data, as the user of a slash command for example, now gets their nickname, roles and color from their own messages. One malformed user or message in plain-object input no longer drops every profile of the transcript, and a guild member that cannot be read falls back to the user's own name and avatar
 - **Fix** embed fields render through a proper async component (was an inline `async` arrow inside `.map()`)
 - **Fix** `JoinMessage` text is deterministic per message id — re-rendering the same channel always yields the same join line
 - **Fix** random `console.log` calls in production paths replaced by the `debug` namespace

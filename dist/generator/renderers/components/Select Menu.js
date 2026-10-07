@@ -19,13 +19,19 @@ function DiscordSelectMenu({ component, }) {
                     border: '1px solid #1e1f22',
                     maxHeight: '320px',
                     overflowY: 'auto',
-                }, children: component.options.map((option, idx) => ((0, jsx_runtime_1.jsxs)("div", { style: {
+                }, children: component.options.map((option, idx) => {
+                    // parseDiscordEmoji returns an image URL — empty when the emoji has
+                    // neither id nor name. As plain children it showed up as raw URL text
+                    // in the opened menu instead of the emoji.
+                    const emojiSrc = option.emoji ? (0, utils_1.parseDiscordEmoji)(option.emoji) : '';
+                    return ((0, jsx_runtime_1.jsxs)("div", { style: {
                         padding: '8px 12px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         borderBottom: idx < component.options.length - 1 ? '1px solid #1e1f22' : 'none',
-                    }, children: [option.emoji && (0, jsx_runtime_1.jsx)("span", { style: { marginRight: '8px' }, children: (0, utils_1.parseDiscordEmoji)(option.emoji) }), (0, jsx_runtime_1.jsx)("span", { children: option.label })] }, idx))) }))] }));
+                    }, children: [emojiSrc && (0, jsx_runtime_1.jsx)("span", { style: { marginRight: '8px', display: 'flex', alignItems: 'center' }, children: (0, jsx_runtime_1.jsx)("img", { src: emojiSrc, alt: option.emoji.name || 'emoji', style: { width: '16px', height: '16px' } }) }), (0, jsx_runtime_1.jsx)("span", { children: option.label })] }, idx));
+                }) }))] }));
 }
 exports.default = DiscordSelectMenu;
 //# sourceMappingURL=Select%20Menu.js.map

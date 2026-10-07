@@ -52,7 +52,6 @@ const FLAG_IS_CROSSPOST = 1 << 1;
 const FLAG_SUPPRESS_EMBEDS = 1 << 2;
 const FLAG_SUPPRESS_NOTIFICATIONS = 1 << 12;
 const FLAG_IS_VOICE_MESSAGE = 1 << 13;
-const FLAG_HAS_SNAPSHOT = 1 << 14;
 const ACTIVITY_TYPES = { 1: 'Join', 2: 'Spectate', 3: 'Listen', 5: 'Join Request' };
 
 function abbrCount(n) {
@@ -71,7 +70,9 @@ async function DiscordMessage({ message, context }) {
         if (message.system)
             return (0, jsx_runtime_1.jsx)(systemMessage_1.default, { message: message, context: context });
 
-        const isCrossGuildReply = message.reference && message.reference.guildId !== message.guild?.id;
+        // Only replies count here: a forward from another server is not a
+        // cross-server reply and must not get the server tag.
+        const isCrossGuildReply = message.reference && !(0, utils_1.isForwardMessage)(message) && message.reference.guildId !== message.guild?.id;
 
         // Data-attrs for client-side filtering (keyword/author/role/date/has-*).
         const memberRoleIds = message.member?.roles?.cache
@@ -106,8 +107,18 @@ async function DiscordMessage({ message, context }) {
             partyId: message.activity.partyId,
         } : null;
 
-        // Forwarded message snapshots (messageSnapshots) — render before the empty body
-        const snapshots = Array.isArray(message.messageSnapshots) ? message.messageSnapshots : [];
+        // Forwarded message snapshots (messageSnapshots) — render before the empty body.
+        // discord.js exposes them as a Collection, never an array, so an Array.isArray
+        // check left every forward empty ("Message could not be loaded.").
+        const snapshots = toArray(message.messageSnapshots);
+        const isForward = (0, utils_1.isForwardMessage)(message);
+        // Discord hides who wrote a forwarded message (see renderSnapshots). Name the
+        // channel it was forwarded from instead — only from this server, so a
+        // transcript never reveals channel names of other servers the bot is in.
+        const forwardedFromChannel = isForward && message.reference?.guildId && message.reference.guildId === message.guild?.id
+            ? message.guild?.channels?.cache?.get(message.reference.channelId)
+            : null;
+        const forwardSource = forwardedFromChannel?.name ? '#' + forwardedFromChannel.name : null;
 
         const editedAtIso = message.editedAt instanceof Date ? message.editedAt.toISOString() : null;
         // Hover text for the "(edited)" marker — the ISO string stays in
@@ -197,7 +208,14 @@ async function DiscordMessage({ message, context }) {
                 ] }),
                 editedAtIso && (0, jsx_runtime_1.jsx)("span", { className: "dht-edit-marker", title: editedAtTitle || editedAtIso, "data-edit-iso": editedAtIso, "data-i18n": "edited", "data-i18n-params": JSON.stringify({ time: editedAtLabel || editedAtIso }), children: '(' + t(context, 'edited', 'edited') + ')' }),
                 Array.isArray(message.editHistory) && message.editHistory.length > 0 && renderEditHistory(message.editHistory, context),
-                snapshots.length > 0 && renderSnapshots(snapshots, context),
+                snapshots.length > 0
+                    ? renderSnapshots(snapshots, context, 0, forwardSource)
+                    // A forward whose snapshot is missing still says what it is
+                    // instead of rendering as an empty message.
+                    : isForward && (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded-wrap", children: (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded", "data-depth": 0, children: (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-head", children: [
+                        (0, jsx_runtime_1.jsx)("span", { className: "dht-forwarded-icon", children: '↪' }),
+                        (0, jsx_runtime_1.jsx)("em", { "data-i18n": "forwardUnavailable", children: t(context, 'forwardUnavailable', 'Forwarded message is unavailable') }),
+                    ] }) }) }),
                 message.content && ((0, jsx_runtime_1.jsx)(content_1.default, { content: message.content, context: Object.assign({}, context, { type: message.webhookId ? content_1.RenderType.WEBHOOK : content_1.RenderType.NORMAL }) })),
                 (0, jsx_runtime_1.jsx)(attachment_1.Attachments, { message: message, context: context }),
                 isVoice && renderVoiceIndicator(message, context),
@@ -210,10 +228,14 @@ async function DiscordMessage({ message, context }) {
                     slot: "reactions",
                     children: Array.from(message.reactions.cache.values()).map((reaction, id) => {
                         const total = reaction.count ?? 0;
-                        const burstCount = reaction.count_details?.burst || reaction.burst_count || 0;
+                        // discord.js names these countDetails and burstColors. The snake_case
+                        // reads only ever matched raw API JSON, so super reactions never
+                        // showed in production; raw shapes still work as a fallback.
+                        const burstCount = reaction.countDetails?.burst || reaction.count_details?.burst || reaction.burst_count || 0;
                         const burst = burstCount > 0;
-                        const burstColors = Array.isArray(reaction.burst_colors) && reaction.burst_colors.length
-                            ? reaction.burst_colors.filter((c) => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c))
+                        const rawBurstColors = reaction.burstColors ?? reaction.burst_colors;
+                        const burstColors = Array.isArray(rawBurstColors) && rawBurstColors.length
+                            ? rawBurstColors.filter((c) => typeof c === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(c))
                             : [];
                         const title = burst
                             ? `${total} reactions (${burstCount} super)`
@@ -236,7 +258,7 @@ async function DiscordMessage({ message, context }) {
             ]
         }, message.id));
     } catch (err) {
-        console.warn('[discord-html-transcripts-fix] Render failed', message?.id, err?.message || err);
+        console.warn('[discord-html-transcripts-fix] Render failed', message?.id, err);
         const safeAuthor = (message?.author?.displayName || message?.author?.username) || 'Unknown';
         return ((0, jsx_runtime_1.jsx)("discord-message", { id: `m-${message?.id}`, children: (0, jsx_runtime_1.jsx)("span", { style: { opacity: 0.6 }, children: `[message from ${safeAuthor} failed to render]` }) }, message?.id));
     }
@@ -321,7 +343,8 @@ function renderVoiceIndicator(message, context) {
             if (typeof a.contentType === 'string' && a.contentType.startsWith('audio/')) { audio = a; break; }
         }
     }
-    const duration = audio?.duration_secs || audio?.durationSecs;
+    // discord.js exposes the raw `duration_secs` as `duration`.
+    const duration = audio?.duration || audio?.duration_secs || audio?.durationSecs;
     const waveformB64 = audio?.waveform;
     let waveformRects = null;
     let waveformWidth = 0;
@@ -360,14 +383,21 @@ function toArray(maybeColl) {
     return [];
 }
 
-function renderSnapshots(snapshots, context, depth = 0) {
+function renderSnapshots(snapshots, context, depth = 0, source = null) {
     const arr = toArray(snapshots);
     if (arr.length === 0 || depth >= 5) return null; // hard-cap at 5 levels
     return (0, jsx_runtime_1.jsx)("div", {
         className: "dht-forwarded-wrap",
         children: arr.map((snap, i) => {
             const m = snap.message || snap;
-            const author = m?.author?.displayName || m?.author?.username || 'Unknown';
+            // Discord deliberately hides who wrote a forwarded message, and the API
+            // snapshot has no author. discord.js still builds each snapshot in the
+            // source channel's message cache, so when the bot has the original
+            // cached, the snapshot IS the original — author included, even from
+            // another server. Only plain-object input, whose author the caller
+            // supplied on purpose, may name one.
+            const author = (0, utils_1.isLibraryStructure)(m) ? null : (m?.author?.displayName || m?.author?.username || null);
+            const origin = author || source;
             const text = m?.content || '';
             const attachments = toArray(m?.attachments);
             const nested = toArray(m?.messageSnapshots);
@@ -381,8 +411,12 @@ function renderSnapshots(snapshots, context, depth = 0) {
             return (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded", "data-depth": depth, children: [
                 (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-head", children: [
                     (0, jsx_runtime_1.jsx)("span", { className: "dht-forwarded-icon", children: '↪' }),
-                    (0, jsx_runtime_1.jsx)("span", { "data-i18n": "forwardedFrom", children: t(context, 'forwardedFrom', 'Forwarded from') }),
-                    (0, jsx_runtime_1.jsx)("strong", { children: ' ' + author }),
+                    // Without a known origin just say "Forwarded" rather than an
+                    // unlocalised "Forwarded from Unknown".
+                    origin
+                        ? (0, jsx_runtime_1.jsx)("span", { "data-i18n": "forwardedFrom", children: t(context, 'forwardedFrom', 'Forwarded from') })
+                        : (0, jsx_runtime_1.jsx)("span", { "data-i18n": "forwardedMessage", children: t(context, 'forwardedMessage', 'Forwarded') }),
+                    origin && (0, jsx_runtime_1.jsx)("strong", { children: ' ' + origin }),
                 ] }),
                 text && (0, jsx_runtime_1.jsx)("div", { className: "dht-forwarded-body", children: (0, jsx_runtime_1.jsx)(content_1.default, { content: text, context: Object.assign({}, context, { type: content_1.RenderType.NORMAL }) }) }),
                 attachments.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "dht-forwarded-attachments", children: [

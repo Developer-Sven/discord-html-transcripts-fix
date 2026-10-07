@@ -14,7 +14,39 @@ exports.safeImageMime = safeImageMime;
 exports.escapeHtml = escapeHtml;
 exports.resolveTimestampFormat = resolveTimestampFormat;
 exports.formatMessageTimestamp = formatMessageTimestamp;
+exports.isForwardReference = isForwardReference;
+exports.isForwardMessage = isForwardMessage;
+exports.isLibraryStructure = isLibraryStructure;
+const discord_js_1 = require("discord.js");
 const twemoji_1 = __importDefault(require("twemoji"));
+
+// MessageReferenceType.Forward. Spelled as the API value on purpose: the enum only
+// exists from discord.js 14.16, and reading it on an older 14.x throws for every
+// message that has a reference.
+const MESSAGE_REFERENCE_TYPE_FORWARD = 1;
+// MessageFlags.HasSnapshot, for the same reason.
+const MESSAGE_FLAG_HAS_SNAPSHOT = 1 << 14;
+
+function isForwardReference(reference) {
+    return !!reference && reference.type === MESSAGE_REFERENCE_TYPE_FORWARD;
+}
+
+// Before 14.16, discord.js dropped the reference type and the snapshots, so a
+// forward looked exactly like a reply. The message flags are kept raw by every
+// 14.x and still tell the two apart.
+function isForwardMessage(message) {
+    if (!message) return false;
+    if (isForwardReference(message.reference)) return true;
+    const flags = typeof message.flags === 'number' ? message.flags : message.flags?.bitfield;
+    return typeof flags === 'number' && (flags & MESSAGE_FLAG_HAS_SNAPSHOT) !== 0;
+}
+
+// True for anything discord.js built, as opposed to plain objects a caller passed
+// in. Every structure carries its client; the second check also holds when a
+// second copy of discord.js is installed and `instanceof` fails.
+function isLibraryStructure(value) {
+    return value instanceof discord_js_1.Base || (value !== null && typeof value === 'object' && 'client' in value);
+}
 
 const DEFAULT_TIMESTAMP_FORMAT = { dateFormat: 'dd/mm/yyyy', timeFormat: '24h' };
 

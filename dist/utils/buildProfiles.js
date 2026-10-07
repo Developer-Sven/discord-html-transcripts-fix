@@ -4,6 +4,7 @@ exports.buildProfiles = buildProfiles;
 exports.buildExtendedContext = buildExtendedContext;
 exports.buildAllContext = buildAllContext;
 const discord_js_1 = require("discord.js");
+const utils_1 = require("./utils");
 
 /**
  * Backwards compatible: returns the profile dict used by <discord-mention> web components.
@@ -37,7 +38,8 @@ async function buildAllContext(messages, channel) {
         ? channel.guild
         : null;
 
-    const seenUserIds = new Set();
+    // id -> 'member' | 'bare': whether the entry was built from the guild member.
+    const userState = new Map();
     const seenRoleIds = new Set();
     const seenChannelIds = new Set();
 
@@ -73,12 +75,48 @@ async function buildAllContext(messages, channel) {
         };
     };
 
-    const includeUser = (member, author) => {
-        if (!author) return;
-        const id = author.id;
-        if (seenUserIds.has(id)) return;
-        seenUserIds.add(id);
+    // Plain-object input may carry dates as strings; discord.js gives Dates.
+    const isoDate = (value) => {
+        const date = value instanceof Date ? value
+            : (typeof value === 'string' || typeof value === 'number') ? new Date(value) : null;
+        return date && !Number.isNaN(date.getTime()) ? date.toISOString() : null;
+    };
 
+    const includeUser = (member, author) => {
+        const id = author?.id;
+        if (!id) return;
+        // The first sighting must not decide: a user seen first without their
+        // member (a mention, a command, a forward) would otherwise keep a profile
+        // without nickname, roles and color for the whole transcript.
+        const state = userState.get(id);
+        if (state === 'member' || (state === 'bare' && !member)) return;
+        userState.set(id, member ? 'member' : 'bare');
+        try {
+            buildUser(id, member, author);
+            return;
+        }
+        catch (err) {
+            // One malformed user must not cost every other profile in the transcript.
+            console.warn(`[discord-html-transcripts-fix] could not build the profile of user ${id}${member ? ' from their guild member' : ''}:`, err);
+        }
+        // A broken member — discord.js' role getters throw when the @everyone role
+        // is not cached, for one — still leaves the user's own name and avatar.
+        if (member && !profiles[id]) {
+            try {
+                buildUser(id, null, author);
+            }
+            catch (err) {
+                console.warn(`[discord-html-transcripts-fix] could not build the profile of user ${id}:`, err);
+            }
+        }
+    };
+
+    // discord.js gives a method; a user serialised with toJSON() carries the URL itself.
+    const avatarOf = (subject, size) => typeof subject?.displayAvatarURL === 'function'
+        ? subject.displayAvatarURL({ size, forceStatic: true })
+        : (typeof subject?.displayAvatarURL === 'string' ? subject.displayAvatarURL : undefined);
+
+    const buildUser = (id, member, author) => {
         // Compute member roles first so we can derive the name color from the
         // highest *listed* role (top of the role list), matching how Discord
         // colors usernames. Falls back to displayHexColor (highest *colored*
@@ -103,9 +141,9 @@ async function buildAllContext(messages, channel) {
         // whose hash still carries the `a_` prefix). The static variant (.webp
         // or .png) always works, so render avatars as static in transcripts.
         // Avatars in a historical archive don't gain much from being animated.
-        profiles[id] = {
+        const profile = {
             author: member?.nickname ?? author.displayName ?? author.username,
-            avatar: member?.displayAvatarURL?.({ size: 64, forceStatic: true }) ?? author.displayAvatarURL?.({ size: 64, forceStatic: true }),
+            avatar: avatarOf(member, 64) ?? avatarOf(author, 64),
             roleColor: effectiveColor,
             roleIcon: member?.roles?.icon?.iconURL?.() ?? undefined,
             roleName: member?.roles?.hoist?.name ?? undefined,
@@ -125,19 +163,19 @@ async function buildAllContext(messages, channel) {
             }
         }
 
-        users[id] = {
+        const user = {
             id,
             username: author.username,
             displayName: member?.nickname || author.displayName || author.username,
             globalName: author.globalName || null,
-            avatar: member?.displayAvatarURL?.({ size: 128, forceStatic: true }) || author.displayAvatarURL?.({ size: 128, forceStatic: true }) || null,
+            avatar: avatarOf(member, 128) || avatarOf(author, 128) || null,
             bannerColor: effectiveColor,
             bot: !!author.bot,
             system: !!author.system,
             verifiedBot: flagNames.includes('VerifiedBot'),
             flags: flagNames,
-            joinedAt: member?.joinedAt ? member.joinedAt.toISOString() : null,
-            createdAt: author.createdAt ? author.createdAt.toISOString() : null,
+            joinedAt: isoDate(member?.joinedAt),
+            createdAt: isoDate(author.createdAt),
             roles: memberRoles.map((r) => ({
                 id: r.id,
                 name: r.name,
@@ -148,9 +186,12 @@ async function buildAllContext(messages, channel) {
                 ? { name: memberRoles[0].name, color: memberRoles[0].hexColor }
                 : null,
         };
+        // Both at once, so a failure above never leaves half an entry behind.
+        profiles[id] = profile;
+        users[id] = user;
     };
 
-    for (const message of messages) {
+    const collect = (message) => {
         if (message.author) includeUser(message.member, message.author);
         if (message.interaction?.user) {
             // FIX: try to find a member object for this user from later messages (interaction user may have authored their own messages elsewhere).
@@ -174,11 +215,28 @@ async function buildAllContext(messages, channel) {
                 for (const [cid] of message.mentions.channels) includeChannelFromGuild(cid);
             }
         }
-        // also include authors of forwarded snapshots
-        if (Array.isArray(message.messageSnapshots)) {
-            for (const snap of message.messageSnapshots) {
-                if (snap?.author) includeUser(null, snap.author);
-            }
+        // Authors of forwarded snapshots — from plain-object input only, exactly
+        // as the renderer names them. Discord hides who wrote a forward, and a
+        // discord.js snapshot of a message the bot has cached is that cached
+        // original, author included (see renderSnapshots).
+        // messageSnapshots is a discord.js Collection, not an array.
+        const snaps = message.messageSnapshots;
+        const snapList = !snaps ? [] : Array.isArray(snaps) ? snaps : typeof snaps.values === 'function' ? Array.from(snaps.values()) : [];
+        for (const snap of snapList) {
+            // Raw payloads nest the snapshot under `message`, like the renderer reads it.
+            const snapMessage = snap?.message || snap;
+            if (!snapMessage || (0, utils_1.isLibraryStructure)(snapMessage)) continue;
+            includeUser(null, snapMessage.author);
+        }
+    };
+
+    for (const message of messages) {
+        try {
+            collect(message);
+        }
+        catch (err) {
+            // A malformed message costs its own entries, not every profile.
+            console.warn('[discord-html-transcripts-fix] could not collect the profiles of message', message?.id, err);
         }
     }
 

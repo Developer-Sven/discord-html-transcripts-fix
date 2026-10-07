@@ -104,7 +104,7 @@ async function render(_a) {
 
     // Single-pass collector (profiles + extended in one walk)
     const allCtx = await (0, buildProfiles_1.buildAllContext)(messages, channel).catch((e) => {
-        console.warn('[discord-html-transcripts-fix] buildAllContext failed:', e?.message || e);
+        console.warn('[discord-html-transcripts-fix] buildAllContext failed:', e);
         return { profiles: {}, users: {}, roles: {}, channels: {} };
     });
 

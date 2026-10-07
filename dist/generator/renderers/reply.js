@@ -8,6 +8,7 @@ exports.default = MessageReply;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const discord_js_1 = require("discord.js");
 const content_1 = __importStar(require("./content"));
+const utils_1 = require("../../utils/utils");
 
 function t(context, key, fallback) {
     const dict = context?.i18n?.[context?.lang] || context?.i18n?.en || {};
@@ -15,7 +16,10 @@ function t(context, key, fallback) {
 }
 
 async function MessageReply({ message, context }) {
-    if (!message.reference) return null;
+    // A forward carries a message reference too (type Forward). It is rendered from
+    // its snapshots, not as a reply; treating it as one put a "Message could not be
+    // loaded." reply bar on every forwarded message.
+    if (!message.reference || (0, utils_1.isForwardMessage)(message)) return null;
 
     const isCrossGuild = message.reference.guildId !== message.guild?.id;
 
@@ -32,16 +36,22 @@ async function MessageReply({ message, context }) {
     if (!referencedMessage)
         return (0, jsx_runtime_1.jsx)("discord-reply", { slot: "reply", children: "Message could not be loaded." });
 
-    const isCrossPost = referencedMessage.reference && referencedMessage.reference.guildId !== message.guild?.id;
+    const isCrossPost = referencedMessage.reference && !(0, utils_1.isForwardMessage)(referencedMessage) && referencedMessage.reference.guildId !== message.guild?.id;
     const isCommand = !!referencedMessage.interaction;
     // Special-case: replying to a forwarded-only / Components-V2-only message has empty content
     const hasContent = !!referencedMessage.content;
-    const hasSnapshot = Array.isArray(referencedMessage.messageSnapshots) && referencedMessage.messageSnapshots.length > 0;
+    // messageSnapshots is a discord.js Collection (size), not an array (length).
+    // discord.js before 14.16 has none at all; the forward flag still says what it is.
+    const snapshotCount = referencedMessage.messageSnapshots?.size ?? referencedMessage.messageSnapshots?.length ?? 0;
+    const hasSnapshot = snapshotCount > 0 || (0, utils_1.isForwardMessage)(referencedMessage);
     const hasComponents = Array.isArray(referencedMessage.components) && referencedMessage.components.length > 0;
     const hasSticker = referencedMessage.stickers?.size > 0;
     const author = referencedMessage.member?.nickname ?? referencedMessage.author.displayName ?? referencedMessage.author.username;
     const avatar = referencedMessage.author.avatarURL?.({ size: 32 }) ?? undefined;
-    const roleColor = referencedMessage.member?.displayHexColor ?? undefined;
+    // displayHexColor is '#000000' for members without a colored role; passed on,
+    // that would paint the name black on the dark background.
+    const memberHex = referencedMessage.member?.displayHexColor;
+    const roleColor = memberHex && memberHex !== '#000000' ? memberHex : undefined;
     const op = referencedMessage.author.id === message?.channel?.ownerId && message?.channel?.isThread?.();
 
     return ((0, jsx_runtime_1.jsx)("discord-reply", {
@@ -50,7 +60,10 @@ async function MessageReply({ message, context }) {
         attachment: referencedMessage.attachments.size > 0,
         author: author,
         avatar: avatar,
-        roleColor: roleColor,
+        // Props become HTML attributes, whose names HTML lowercases: `roleColor`
+        // arrived as `rolecolor`, which the component does not observe, so reply
+        // authors never got their role color.
+        "role-color": roleColor,
         bot: !isCrossPost && referencedMessage.author.bot,
         verified: referencedMessage.author.flags?.has?.(discord_js_1.UserFlags.VerifiedBot),
         op: op,

@@ -233,7 +233,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Voice messages** — `🎤` indicator, inline SVG waveform from `attachment.waveform`, duration
 - **Pinned messages** — Discord-style amber left rail (no extra icon clutter)
 - **Slash command interactions** — `{user} used /cmd` header + clickable pill that reveals parameters
-- **System messages** — `ChannelPinnedMessage`, `ChannelNameChange`, `ChannelIconChange`, `ThreadCreated`, `ChatInputCommand`, `ContextMenuCommand`, `Call`, `ChannelFollowAdd`, `RecipientRemove`, `RoleSubscriptionPurchase`, guild incident reports, poll result, AutoMod actions
+- **System messages** — `ChannelPinnedMessage`, `ChannelNameChange`, `ChannelIconChange`, `ThreadCreated`, `ChatInputCommand`, `ContextMenuCommand`, `Call`, `ChannelFollowAdd`, `RecipientRemove`, `RoleSubscriptionPurchase`, guild incident reports, poll result, AutoMod actions, and any other type as a neutral "System message" line
 - **Cross-guild replies** — show a "Message from another server" pill
 - **Burst / super-reactions** flagged
 - **Thread state badges** — `Archived`, `Locked`
@@ -275,6 +275,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Fix** super reactions and voice-message durations show — the renderer read the raw API names (`count_details`, `burst_colors`, `duration_secs`), which discord.js renames
 - **Fix** reply authors get their role color, and embed footer icons and audio file sizes show — the values were passed as camelCase attributes, which HTML lowercases, so the components never received them. Members without a colored role are no longer painted black
 - **Fix** reaction counts of 1,000 and more showed `NaN` — the abbreviated "1.5K" went to a component that only reads numbers; the full count is shown now
+- **Fix** system messages of types without their own wording — Server Discovery notices, invite reminders, premium upsells, purchase notifications, and any type Discord adds later — were silently dropped from the transcript. They appear as a neutral "System message" line with Discord's text now (new i18n key `systemMessage`)
 - **Fix** the stats footer counts one of something in the singular — "1 message · 1 participant · 1 image" instead of "1 messages", in German too (new i18n keys `statsMessage`, `statsParticipant`, `statsImage`)
 - **Fix** select menu options show their emoji instead of its URL as text, and AutoMod alerts name the channel instead of printing `<#id>` (its id remains when the server does not know it)
 - **Fix** profile cards no longer depend on the order users appear in: someone first seen without member data, as the user of a slash command for example, now gets their nickname, roles and color from their own messages. One malformed user or message in plain-object input no longer drops every profile of the transcript, and a guild member that cannot be read falls back to the user's own name and avatar

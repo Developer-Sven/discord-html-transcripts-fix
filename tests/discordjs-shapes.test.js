@@ -489,6 +489,24 @@ test('the stats footer counts one of something in the singular', async (t) => {
     assert.match(two.body, /<footer class="dht-stats">2 messages · 2 participants · 1 image · /);
 });
 
+test('a system message of a type without its own wording shows as a neutral line', async (t) => {
+    const build = (w) => [
+        w.message({ createdAt: at(0, 9, 37), type: 44, content: '' }),
+        // A type Discord might add tomorrow.
+        w.message({ createdAt: at(0, 9, 38), type: 999, content: 'from **Discord**' }),
+    ];
+    const { body } = await render(t, build);
+    const lines = tags(body, 'discord-system-message');
+    assert.deepEqual(
+        lines.map((line) => [line.get('type'), line.get('data-system-type'), line.get('title')]),
+        [['alert', '44', 'PurchaseNotification (44)'], ['alert', '999', 'type 999']],
+    );
+    assert.match(body, /<span data-i18n="systemMessage">System message<\/span><\/discord-system-message>/);
+    assert.match(body, /<span data-i18n="systemMessage">System message<\/span>: from <strong>Discord/);
+    const german = await render(t, build, { language: 'de' });
+    assert.match(german.body, /<span data-i18n="systemMessage">Systemnachricht<\/span>/);
+});
+
 test('a voice message shows its duration', async (t) => {
     const { body } = await render(t, (w) => [w.message({
         createdAt: at(0, 9, 20),

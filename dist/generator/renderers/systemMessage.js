@@ -6,6 +6,7 @@ exports.JoinMessage = JoinMessage;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const discord_js_1 = require("discord.js");
 const utils_1 = require("../../utils/utils");
+const content_1 = require("./content");
 
 function t(context, key, fallback) {
     const dict = context?.i18n?.[context?.lang] || context?.i18n?.en || {};
@@ -218,8 +219,17 @@ async function SystemMessage({ message, context }) {
         case discord_js_1.MessageType.Reply:
             return undefined;
 
-        default:
-            return undefined;
+        // A type without its own wording here — Server Discovery notices, invite
+        // reminders, premium upsells, purchase notifications, or anything Discord adds
+        // later. Dropping it left a silent gap in the record; a neutral line keeps it,
+        // with whatever text Discord sent, and names the type on hover.
+        default: {
+            const typeName = typeof discord_js_1.MessageType[message.type] === 'string' ? discord_js_1.MessageType[message.type] : null;
+            return ((0, jsx_runtime_1.jsxs)("discord-system-message", { id: `m-${message.id}`, timestamp: ts, type: "alert", title: typeName ? `${typeName} (${message.type})` : `type ${message.type}`, "data-system-type": message.type, children: [
+                (0, jsx_runtime_1.jsx)("span", { "data-i18n": "systemMessage", children: t(ctx, 'systemMessage', 'System message') }),
+                message.content && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [': ', (0, jsx_runtime_1.jsx)(content_1.default, { content: message.content, context: Object.assign({}, ctx, { type: content_1.RenderType.NORMAL }) })] }),
+            ] }, message.id));
+        }
     }
 }
 

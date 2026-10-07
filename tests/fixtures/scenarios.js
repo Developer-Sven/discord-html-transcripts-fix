@@ -441,12 +441,13 @@ scenarios['system-messages'] = (w) => {
                     ],
                 }],
             }),
-            // Types the renderer has no case for. Recorded so the snapshot pins the
-            // current behaviour (they are dropped) until that is decided.
+            // Types without their own wording, and one Discord might add later: each
+            // becomes a neutral line instead of vanishing from the record.
             sys(14),
             sys(22),
             sys(26),
             sys(44),
+            sys(999, { content: 'text Discord sent with **markdown**' }),
         ],
     };
 };

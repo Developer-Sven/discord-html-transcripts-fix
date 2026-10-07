@@ -260,6 +260,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 
 - **Fix** invalid Discord timestamp markers (`<t:abc:F>`, oversized values) no longer abort the transcript with `RangeError`
 - **Fix** per-AST-node error boundary in `MessageSingleASTNode` and per-message error boundary in `DiscordMessage` — one broken message can never kill the whole render
+- **Fix** a failed image download with `saveImages` — or a custom `resolveImageSrc` that throws — no longer fails the whole export: the image keeps its link and a warning names it
 - **Fix** `parseDiscordEmoji` no longer throws on deleted reactions with `emoji.name === null`
 - **Fix** `formatBytes(null/undefined/NaN)` no longer returns `NaN undefined`
 - **Fix** `createTranscript` slice uses the resolved limit instead of the raw `limit`

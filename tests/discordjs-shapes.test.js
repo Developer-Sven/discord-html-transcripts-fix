@@ -529,6 +529,25 @@ test('link buttons keep discord:// targets, and a link never takes an image-only
     assert.match(body, /<a href="#"[^>]*><img src="data:image\/png;base64,QUJD"/);
 });
 
+test('a failed image download keeps the image linked instead of failing the export', async (t) => {
+    const warn = t.mock.method(console, 'warn', () => {});
+    const image = { id: '1100000000000070301', filename: 'shot.png', size: 10, url: 'https://cdn.discordapp.com/attachments/1/2/shot.png', proxy_url: 'https://media.discordapp.net/attachments/1/2/shot.png', content_type: 'image/png', width: 8, height: 8 };
+    const { body } = await render(t, (w) => [
+        w.message({ createdAt: at(0, 9, 41), content: 'own image', attachments: [image] }),
+        w.message({
+            createdAt: at(0, 9, 42),
+            content: '',
+            flags: 1 << 14,
+            message_reference: { type: 1, message_id: '1100000000000088812', channel_id: IDS.otherChannel, guild_id: IDS.guild },
+            message_snapshots: [{ message: forwardSnapshot }],
+        }),
+    ], { callbacks: { resolveImageSrc: async () => { throw new Error('connection reset while downloading'); } } });
+    const sources = tags(body, 'img').map((img) => img.get('src'));
+    assert.ok(sources.includes(image.url), 'the own image keeps its link');
+    assert.ok(sources.includes(forwardSnapshot.attachments[0].url), 'the forwarded image keeps its link');
+    assert.equal(warn.mock.calls.filter((call) => call.arguments.join(' ').includes('could not save image')).length, 2);
+});
+
 test('a voice message shows its duration', async (t) => {
     const { body } = await render(t, (w) => [w.message({
         createdAt: at(0, 9, 20),

@@ -23,7 +23,17 @@ async function Attachment({ attachment, context, message }) {
 
     switch (attachmentType) {
         case types_1.AttachmentTypes.Image: {
-            const downloaded = await context.callbacks.resolveImageSrc(attachment.toJSON(), message.toJSON());
+            let downloaded;
+            try {
+                downloaded = await context.callbacks.resolveImageSrc(attachment.toJSON(), message.toJSON());
+            }
+            catch (err) {
+                // Rendering runs in async components outside the per-message boundary: a
+                // failed download (saveImages, a custom resolver) used to reject the whole
+                // export. The image keeps its link instead.
+                console.warn('[discord-html-transcripts-fix] could not save image', attachment.id, err);
+                downloaded = undefined;
+            }
             if (downloaded !== null) {
                 url = downloaded ?? url;
             }

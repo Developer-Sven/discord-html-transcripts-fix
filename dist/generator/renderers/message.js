@@ -74,7 +74,7 @@ async function DiscordMessage({ message, context }) {
             : '';
         const authorName = (message.member?.nickname || message.author?.displayName || message.author?.username || '').toLowerCase();
         const ts = message.createdAt instanceof Date ? message.createdAt.getTime() : 0;
-        const lowerText = (message.content || '').toLowerCase().slice(0, 4096);
+        const lowerText = (0, utils_1.truncateText)((message.content || '').toLowerCase(), 4096);
         const mediaFlags = detectMediaFlags(message);
         const hasImage = mediaFlags.hasImage;
         const hasEmbed = mediaFlags.hasEmbed;
@@ -198,7 +198,7 @@ async function DiscordMessage({ message, context }) {
                 isSilent && (0, jsx_runtime_1.jsx)("span", { className: "dht-badge dht-badge-silent", title: "Silent message (no notification)", children: '🔕 Silent' }),
                 activity && (0, jsx_runtime_1.jsxs)("div", { className: "dht-activity", children: [
                     (0, jsx_runtime_1.jsx)("span", { className: "dht-activity-icon", children: '🎮' }),
-                    (0, jsx_runtime_1.jsxs)("span", { children: [activity.type, ' invite', activity.partyId ? ` · Party ${activity.partyId.slice(-6)}` : ''] })
+                    (0, jsx_runtime_1.jsxs)("span", { children: [activity.type, ' invite', activity.partyId ? ` · Party ${Array.from(activity.partyId).slice(-6).join('')}` : ''] })
                 ] }),
                 editedAtIso && (0, jsx_runtime_1.jsx)("span", { className: "dht-edit-marker", title: editedAtTitle || editedAtIso, "data-edit-iso": editedAtIso, "data-i18n": "edited", "data-i18n-params": JSON.stringify({ time: editedAtLabel || editedAtIso }), children: '(' + t(context, 'edited', 'edited') + ')' }),
                 Array.isArray(message.editHistory) && message.editHistory.length > 0 && renderEditHistory(message.editHistory, context),
@@ -270,7 +270,7 @@ function renderThread(thread, context) {
     return (0, jsx_runtime_1.jsxs)("discord-thread", { slot: "thread", name: thread.name, cta, children: [
         badges,
         thread.lastMessage
-            ? (0, jsx_runtime_1.jsx)("discord-thread-message", { profile: thread.lastMessage.author.id, children: (0, jsx_runtime_1.jsx)(content_1.default, { content: thread.lastMessage.content.length > 128 ? thread.lastMessage.content.substring(0, 125) + '...' : thread.lastMessage.content, context: Object.assign({}, context, { type: content_1.RenderType.REPLY }) }) })
+            ? (0, jsx_runtime_1.jsx)("discord-thread-message", { profile: thread.lastMessage.author.id, children: (0, jsx_runtime_1.jsx)(content_1.default, { content: thread.lastMessage.content.length > 128 ? (0, utils_1.truncateText)(thread.lastMessage.content, 125) + '...' : thread.lastMessage.content, context: Object.assign({}, context, { type: content_1.RenderType.REPLY }) }) })
             : 'Thread messages not saved.'
     ] });
 }

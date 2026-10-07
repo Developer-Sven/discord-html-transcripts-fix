@@ -32,6 +32,44 @@ function hexToRgba(hex, alpha) {
     return `rgba(${r},${g},${b},${alpha})`;
 }
 
+// discord-markdown-parser ends a text node before every character outside
+// [0-9A-Za-z] and whitespace, and it counts UTF-16 code units. A character outside
+// the Basic Multilingual Plane — fancy-font letters, rare CJK, symbols — therefore
+// arrives as two text nodes holding one lone surrogate half each, and encoding the
+// page turned every half into U+FFFD. Adjacent text nodes are joined again, which
+// also stops non-ASCII text from becoming one node (and one markup separator) per
+// character. Plain text content is all that is merged; nothing else changes.
+function mergeTextNodes(nodes) {
+    if (!Array.isArray(nodes)) return nodes;
+    const out = [];
+    for (const node of nodes) {
+        if (Array.isArray(node)) {
+            out.push(mergeTextNodes(node));
+            continue;
+        }
+        if (!node || typeof node !== 'object') {
+            out.push(node);
+            continue;
+        }
+        const previous = out[out.length - 1];
+        if (node.type === 'text' && typeof node.content === 'string'
+            && previous && !Array.isArray(previous) && previous.type === 'text' && typeof previous.content === 'string') {
+            out[out.length - 1] = Object.assign({}, previous, { content: previous.content + node.content });
+            continue;
+        }
+        const merged = Object.assign({}, node);
+        if (Array.isArray(node.content)) merged.content = mergeTextNodes(node.content);
+        if (Array.isArray(node.items)) merged.items = mergeTextNodes(node.items);
+        out.push(merged);
+    }
+    return out;
+}
+
+function parseMarkdown(source, mode) {
+    const parsed = discord_markdown_parser_1.default(source, mode);
+    return mergeTextNodes(Array.isArray(parsed) ? parsed : [parsed]);
+}
+
 // Discord-specific block-level markdown that discord-markdown-parser misses in inline mode.
 // Run BEFORE the parser, extract heading/subtext lines, parse the rest, splice back together.
 const HEADING_RE = /^(#{1,3})\s+(.+?)\s*$/;
@@ -47,9 +85,7 @@ function preParseDiscord(content, mode) {
 
     const flushInline = () => {
         if (!inlineBuffer) return;
-        const parsed = discord_markdown_parser_1.default(inlineBuffer, mode);
-        const arr = Array.isArray(parsed) ? parsed : [parsed];
-        nodes.push(...arr);
+        nodes.push(...parseMarkdown(inlineBuffer, mode));
         inlineBuffer = '';
     };
 
@@ -77,16 +113,14 @@ function preParseDiscord(content, mode) {
         if (h) {
             flushInline();
             const level = h[1].length;
-            const headingInner = discord_markdown_parser_1.default(h[2], mode);
-            nodes.push({ type: 'heading', level, content: Array.isArray(headingInner) ? headingInner : [headingInner] });
+            nodes.push({ type: 'heading', level, content: parseMarkdown(h[2], mode) });
             continue;
         }
 
         const s = line.match(SUBTEXT_RE);
         if (s) {
             flushInline();
-            const innerNodes = discord_markdown_parser_1.default(s[1], mode);
-            nodes.push({ type: 'subtext', content: Array.isArray(innerNodes) ? innerNodes : [innerNodes] });
+            nodes.push({ type: 'subtext', content: parseMarkdown(s[1], mode) });
             continue;
         }
 
@@ -103,14 +137,15 @@ function preParseDiscord(content, mode) {
 
 async function MessageContent({ content, context }) {
     if (context.type === RenderType.REPLY && content.length > 180) {
-        content = content.slice(0, 180) + '...';
+        // Not through the middle of a surrogate pair: half of one cannot be encoded.
+        content = (0, utils_1.truncateText)(content, 180) + '...';
     }
     const mode = context.type === RenderType.EMBED || context.type === RenderType.WEBHOOK ? 'extended' : 'normal';
     // REPLY mode is always inline-only (heading inside a reply preview makes no sense).
     // For all other modes (NORMAL/EMBED/WEBHOOK) we pre-process headings/subtext/code-fences
     // so they render correctly even though discord-markdown-parser is inline-only.
     const parsed = context.type === RenderType.REPLY
-        ? discord_markdown_parser_1.default(content, mode)
+        ? parseMarkdown(content, mode)
         : preParseDiscord(content, mode);
 
     const nodes = Array.isArray(parsed) ? parsed : [parsed];

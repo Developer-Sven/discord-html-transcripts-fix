@@ -12,6 +12,7 @@ exports.safeHref = safeHref;
 exports.safeImageSrc = safeImageSrc;
 exports.safeLinkHref = safeLinkHref;
 exports.describeError = describeError;
+exports.truncateText = truncateText;
 exports.safeColor = safeColor;
 exports.safeImageMime = safeImageMime;
 exports.escapeHtml = escapeHtml;
@@ -226,6 +227,16 @@ function safeLinkHref(url) {
         }
     }
     return safeHref(url);
+}
+
+// Cuts `text` to at most `max` UTF-16 code units without cutting through a surrogate
+// pair. Half of a pair cannot be encoded: it ends up as U+FFFD in the page.
+function truncateText(text, max) {
+    if (typeof text !== 'string' || text.length <= max) return text;
+    let end = max;
+    const last = text.charCodeAt(end - 1);
+    if (last >= 0xd800 && last <= 0xdbff) end--; // a first half: leave it out with its second half
+    return text.slice(0, end);
 }
 
 // An error for a log line: its message and stack only. A whole error object can

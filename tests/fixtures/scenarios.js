@@ -763,6 +763,48 @@ scenarios['author-variants'] = (w) => ({
     ],
 });
 
+// --- text outside the Basic Multilingual Plane -----------------------------------------------
+// Fancy-font letters, rare ideographs and emoji sequences are two UTF-16 code units; the
+// markdown parser cuts its text nodes per code unit, which once turned them into U+FFFD.
+// Escapes keep every tool in the chain from re-encoding the fixture.
+scenarios['unicode-text'] = (w) => {
+    const FIVEM = '\u{1D60D}\u{1D610}\u{1D61D}\u{1D60C}\u{1D614}';
+    const COMEBACK = '\u{1D60A}\u{1D616}\u{1D614}\u{1D60C}\u{1D609}\u{1D608}\u{1D60A}\u{1D612}';
+    const KANJI = '\u{20BB7}';
+    const FAMILY = '\u{1F468}\u200D\u{1F469}\u200D\u{1F467}';
+    // A server and a channel named the way servers name themselves; no icon, so the
+    // header shows its initials.
+    w.guild.name = FIVEM + ' ' + COMEBACK + ' 2026';
+    w.channel.name = '\u{1F3AB}\u2503support-129';
+    const reply = (minute, target, text) => w.message({
+        createdAt: at(0, 10, minute),
+        type: 19,
+        content: text,
+        message_reference: { type: 0, message_id: target.id, channel_id: IDS.channel, guild_id: IDS.guild },
+    });
+    const long = w.message({ createdAt: at(0, 10, 5), content: 'a'.repeat(179) + FIVEM });
+    return {
+        messages: [
+            w.message({ createdAt: at(0, 10, 0), content: 'Support ' + FIVEM + ' | ' + COMEBACK + ' and ' + KANJI + ' and caf\u00E9 na\u00EFve \u65E5\u672C\u8A9E \u05E9\u05DC\u05D5\u05DD \u0645\u0631\u062D\u0628\u0627' }),
+            w.message({ createdAt: at(0, 10, 1), content: '**' + FIVEM + '** *' + FIVEM + '* __' + FIVEM + '__ ~~' + FIVEM + '~~ ||' + FIVEM + '|| `' + FIVEM + '`\n> ' + FIVEM + '\n# ' + FIVEM + '\n-# ' + COMEBACK + '\n- ' + FIVEM + '\n- ' + COMEBACK + '\n[' + FIVEM + '](https://example.com/)\n```\n' + COMEBACK + '\n```' }),
+            w.message({ createdAt: at(0, 10, 2), content: FAMILY + ' ' + FIVEM + ' \u{1F1E9}\u{1F1EA} e\u0301' }),
+            w.message({
+                createdAt: at(0, 10, 3),
+                authorKey: 'bot',
+                flags: 1 << 15,
+                components: [{ type: 17, components: [{ type: 10, content: 'Support \u2022 ' + FIVEM + ' | ' + COMEBACK + '\n\nWillkommen im Support von ' + FIVEM + ' ' + COMEBACK + ' 2026.' }] }],
+            }),
+            w.message({
+                createdAt: at(0, 10, 4),
+                embeds: [{ type: 'rich', title: FIVEM, description: 'D ' + FIVEM, author: { name: 'A ' + FIVEM }, fields: [{ name: 'F ' + FIVEM, value: 'V ' + COMEBACK, inline: false }], footer: { text: 'Foot ' + FIVEM } }],
+            }),
+            long,
+            reply(6, long, 'to the long one, cut inside an astral character'),
+            reply(7, long, FIVEM + ' reply'),
+        ],
+    };
+};
+
 // --- untrusted text --------------------------------------------------------------------
 // Everything a user controls, written to break out of the markup or the data island.
 // The golden guards reject any event handler or script URL that survives.
@@ -772,7 +814,7 @@ scenarios['hostile-content'] = (w) => {
         messages: [
             w.message({
                 createdAt: at(0, 12, 0),
-                content: '</script><script>alert(2)</script> <img src=x onerror=alert(3)> line separator [click](javascript:alert(4)) <javascript:alert(5)> https://example.com/"onmouseover="alert(6)',
+                content: '</script><script>alert(2)</script> <img src=x onerror=alert(3)> line\u2028separator [click](javascript:alert(4)) <javascript:alert(5)> https://example.com/"onmouseover="alert(6)',
             }),
             w.message({
                 createdAt: at(0, 12, 1),

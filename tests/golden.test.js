@@ -149,6 +149,9 @@ for (const name of Object.keys(scenarios)) {
         assert.deepEqual(unexpected, [], 'the renderer warned unexpectedly');
         for (const re of expectWarnings) assert.ok(warnings.some((w) => re.test(w)), `expected a warning matching ${re}`);
         assert.deepEqual(errors, [], 'the renderer logged an error');
+        // Half of a character outside the Basic Multilingual Plane cannot be encoded and
+        // turns into U+FFFD; a fixture never contains the replacement character itself.
+        assert.ok(!html.includes('\uFFFD'), 'U+FFFD reached the page: a character was cut in half somewhere');
         if (expectWarnings.length === 0) assert.ok(!html.includes('failed to render'), 'a fixture message failed to render');
         assert.deepEqual(attributeProblems(html), [], 'every attribute must reach its component as intended');
         assertScriptsParse(html);

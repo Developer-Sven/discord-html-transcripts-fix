@@ -1,6 +1,6 @@
 {
   "name": "discord-html-transcripts-fix",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "A nicely formatted html transcript generator for discord.js. Bugfix fork with support for the latest discord.js and Components v2.",
   "main": "dist/index.js",
   "types": "./dist/index.d.ts",

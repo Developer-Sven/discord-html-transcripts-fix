@@ -15,9 +15,9 @@ Forked from [discord-html-transcripts](https://github.com/ItzDerock/discord-html
 - **[`sharp`](https://sharp.pixelplumbing.com/)** — *optional* peer dependency, only needed if you use `.withCompression()` to compress / convert transcript images to WebP.
 
 The **generated HTML** additionally reaches out to third-party CDNs when it is *opened*
-— jsDelivr for the `<discord-*>` component runtime and cdnjs for Twemoji SVGs. Set
-[`inlineAssets: true`](#self-contained-transcripts) to embed them and get a file that
-renders offline.
+— jsDelivr for the `<discord-*>` component runtime and the gg sans font, cdnjs for
+Twemoji SVGs. Set [`inlineAssets: true`](#self-contained-transcripts) to embed them and
+get a file that renders offline.
 
 ## Install
 
@@ -67,11 +67,11 @@ const stream = await createTranscript(channel, {
 | `filter` | `(m) => boolean` | `() => true` | Predicate to filter messages. |
 | `returnType` | `'attachment'` \| `'buffer'` \| `'string'` \| `'stream'` | `'attachment'` | Return value shape. In TypeScript pass the `ExportReturnType` enum. `'stream'` returns a Node `Readable` and is best for 5k+ message exports. |
 | `filename` | `string` | `transcript-{channel-id}.html` | Output filename when returning as attachment. |
-| `saveImages` | `boolean` | `false` | Download images and inline them as base64 data URLs. |
+| `saveImages` | `boolean` | `false` | Download image **attachments** and inline them as base64 data URLs. Avatars, embed images and custom emoji keep loading from Discord. |
 | `favicon` | `'guild'` \| `string` | `'guild'` | Page favicon — `'guild'` uses the server icon, or pass a URL. |
 | `hydrate` | `boolean` | `false` | Enables the client-side spoiler-reveal script. |
-| `inlineAssets` | `boolean` | `false` | Embed the component runtime and emoji so the file renders offline. See below. |
-| `inlineAssetsTimeout` | `number` | `30000` | Per-request timeout in ms while downloading those assets. |
+| `inlineAssets` | `boolean` | `false` | Embed the component runtime, the gg sans font and the emoji so the file renders without third-party CDNs. See below. |
+| `inlineAssetsTimeout` | `number` | `30000` | Timeout in ms for each of those downloads, connection setup included. |
 | `dateFormat` | `'dd/mm/yyyy'` \| `'mm/dd/yyyy'` | `'dd/mm/yyyy'` | Date order for message timestamps older than yesterday. |
 | `timeFormat` | `'24h'` \| `'12h'` | `'24h'` | Clock format for message timestamps — `07:16` vs `07:16 AM`. |
 | `language` | `'en'` \| `'de'` | `'en'` | UI language for participant labels, filter strings, etc. |
@@ -84,32 +84,54 @@ const stream = await createTranscript(channel, {
 ### Self-contained transcripts
 
 By default the rendered file is not standalone: opening it fetches the `<discord-*>`
-component runtime from jsDelivr and the emoji SVGs from cdnjs. Offline, on a network
-that blocks those CDNs, or after a CDN outage the transcript renders unstyled — and
-every viewer's IP reaches both CDNs, which can matter for archived tickets.
+component runtime and the gg sans font from jsDelivr and the emoji SVGs from cdnjs.
+Offline, on a network that blocks those CDNs, or after a CDN outage the transcript
+renders unstyled — and every viewer's IP reaches both CDNs, which can matter for
+archived tickets.
 
 ```js
 await createTranscript(channel, {
     inlineAssets: true,
-    saveImages: true, // also inlines Discord's avatars/attachments
+    saveImages: true, // also embeds image attachments
 });
 ```
 
-`inlineAssets` embeds the component runtime and every emoji used, so the file opens
-with **zero external requests**. Verified in a browser: the inlined transcript renders
-identically to the CDN version (same layout, same shadow DOM), loading 35 modules from
-`blob:` URLs and nothing from the network.
+`inlineAssets` embeds the component runtime, all ten gg sans font files and every emoji
+the transcript shows, so opening the file makes **no request to a third-party CDN**.
+Verified in a browser: it renders like the CDN version — reactions included — loads the
+runtime from about 35 `blob:` modules, and the only remaining network request goes to
+Discord's own CDN for avatars.
 
 | | Default | `inlineAssets: true` |
 | --- | --- | --- |
-| File size | ~72 kB | ~620 kB |
-| External hosts on open | jsDelivr, cdnjs, Discord CDN | Discord CDN only (none with `saveImages`) |
-| Works offline | no | yes |
+| File size | ~72 kB | ~960 kB |
+| Hosts contacted on open | jsDelivr, cdnjs, Discord CDN | Discord CDN only (`cdn.discordapp.com`, `media.discordapp.net`) |
+| Without network | unstyled | styled; avatars, and attachments unless `saveImages` is set, are missing |
 
-The download happens once per process and is cached, so the first transcript pays
-about a second and later ones are unaffected. If an asset cannot be fetched the CDN
-reference is kept and a warning is logged — the export never fails over this. Use
-`inlineAssetsTimeout` (default `30000` ms) to bound the downloads.
+What stays on Discord's CDN: avatars always; attachment images unless `saveImages` is
+set; embed images, stickers, custom emoji and Components V2 media. Emoji typed as URLs
+in messages are never rewritten — only the images the renderer itself emits are
+embedded.
+
+The downloads happen once per process and are cached, and concurrent exports share
+them, so the first transcript pays about a second and later ones are unaffected. If an
+asset cannot be fetched the CDN reference is kept and a warning naming the cause is
+logged — the export never fails over this:
+
+- A CDN that is unreachable or answers 5xx is given up on after the first failed wave
+  instead of waiting out the timeout for every file, and retried a minute later.
+- A response that is not the expected file (a captive portal or error page answering
+  `200`) is never embedded and never cached.
+- Emoji newer than Twemoji 14.0.2 do not exist on the CDN at all; they are reported once
+  per process instead of on every export.
+- A bug in the inliner itself goes to `console.error` with its stack rather than being
+  reported as a CDN problem.
+
+`inlineAssetsTimeout` (default `30000` ms) caps each download, connection setup
+included; numeric strings from environment variables are accepted. Per-file details are
+available with `DEBUG=discord-html-transcripts:selfContained`. With a stream return type
+the document is buffered before it is streamed, so `stream` saves no memory in
+combination with `inlineAssets`.
 
 ### Message timestamps
 
@@ -241,6 +263,11 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Fix** `formatBytes(null/undefined/NaN)` no longer returns `NaN undefined`
 - **Fix** `createTranscript` slice uses the resolved limit instead of the raw `limit`
 - **Fix** `statsFooter` (custom template / `false`) is now forwarded end-to-end — it used to be silently ignored by `createTranscript`/`generateFromMessages`
+- **Fix** `dateFormat`, `timeFormat`, `inlineAssets` and `inlineAssetsTimeout` are forwarded by `createTranscript`/`generateFromMessages` — 2.1.0 and 2.2.0 silently ignored them, the same way `statsFooter` once was. A test derived from the typings now fails whenever a declared option does not reach the renderer
+- **Fix** `hydrate` combined with `returnType: 'stream'` / `stream: true` returns a `Readable` again instead of a string
+- **Fix** `inlineAssets` hardened now that it actually runs: reaction emoji render as images instead of base64 text, user-typed URLs are never rewritten, the timeout also bounds connection setup, a CDN outage is not waited out per file, error pages are never embedded or cached, and a bug in the inliner is no longer reported as a CDN problem
+- **Fix** `inlineAssets` + stream yields Buffer chunks like every other stream (a single string chunk broke `Buffer.concat`)
+- **Fix** invalid `dateFormat` / `timeFormat` / `inlineAssetsTimeout` values are reported instead of silently replaced; case and numeric strings are tolerated
 - **Fix** embed fields render through a proper async component (was an inline `async` arrow inside `.map()`)
 - **Fix** `JoinMessage` text is deterministic per message id — re-rendering the same channel always yields the same join line
 - **Fix** random `console.log` calls in production paths replaced by the `debug` namespace
@@ -268,7 +295,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Discord-style message timestamps** — today shows the bare time (`07:16`), yesterday reads `Yesterday at 07:16`, anything older gets `11/08/2026 07:16`. Configurable via `dateFormat` and `timeFormat`. Previously the raw ISO string (`2026-08-14T07:16:07.422Z`) was rendered, because the web component only formats real `Date` objects and an HTML attribute always arrives as a string
 - **`hydrate: true` actually works** — the markup was handed to Lit as a plain string, which Lit HTML-escapes, so the option emitted a page of visible `&lt;!DOCTYPE html&gt;…` source text instead of a transcript
 - **`@lit-labs/ssr` and `lit` removed entirely** — the `hydrate` path pushed the finished markup through Lit SSR, which was measured to contribute exactly four inert `<!--lit-part-->` comments and nothing else, since the page never loads a Lit hydration client. Two dependencies and the deprecated `node-fetch → fetch-blob → node-domexception` chain for four comments. `hydrate: true` keeps its real effect (the spoiler-reveal script), and the install is now warning-free
-- **`inlineAssets` option** — embeds the component runtime and emoji so a transcript renders with zero external requests
+- **`inlineAssets` option** — embeds the component runtime, the gg sans font and the emoji so a transcript opens without any third-party CDN
 - **TypeScript declarations match runtime** — `ExportReturnType.Stream`, `language`, `i18n`, `stream`, and `withConcurrency()` are now exposed in the types
 - `discord.js` remains the only **required** peer dependency
 

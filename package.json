@@ -39,7 +39,7 @@
     "react-dom": "^19.2.3",
     "simple-markdown": "^0.7.3",
     "twemoji": "^14.0.2",
-    "undici": "^7.29.0"
+    "undici": "^7.29.1"
   },
   "peerDependencies": {
     "discord.js": "^14.0.0 || ^15.0.0",
@@ -54,6 +54,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "test": "node --test",
     "prepublishOnly": "node -e \"require('fs').accessSync('dist/index.js'); require('fs').accessSync('dist/index.d.ts');\" || (echo 'dist/index.js or dist/index.d.ts missing — refusing to publish' && exit 1)"
   },
   "publishConfig": {

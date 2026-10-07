@@ -85,6 +85,13 @@ async function generateFromMessages(messages, channel, options = {}) {
         hydrate: options.hydrate ?? false,
         language: options.language ?? 'en',
         i18n: options.i18n ?? undefined,
+        // These four were missing from this hand-maintained list when they were
+        // introduced, so the public API silently dropped them and only the
+        // defaults ever applied. Anything the generator reads must be listed here.
+        dateFormat: options.dateFormat,
+        timeFormat: options.timeFormat,
+        inlineAssets: options.inlineAssets ?? false,
+        inlineAssetsTimeout: options.inlineAssetsTimeout,
         stream: options.returnType === 'stream' || options.stream === true,
         returnType: options.returnType,
     });

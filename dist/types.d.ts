@@ -53,8 +53,9 @@ export type GenerateFromMessagesOptions<T extends ExportReturnType> = Partial<{
      */
     favicon: 'guild' | string;
     /**
-     * Whether to hydrate the html server-side
-     * @default false - the returned html will be hydrated client-side
+     * Adds the client-side script that reveals spoilers on click.
+     * The `<discord-*>` elements hydrate in the browser either way.
+     * @default false
      */
     hydrate: boolean;
     /**
@@ -73,36 +74,44 @@ export type GenerateFromMessagesOptions<T extends ExportReturnType> = Partial<{
     };
     /**
      * Embed the third-party assets the transcript would otherwise load from a CDN
-     * at view time — the `<discord-*>` web component runtime (from jsDelivr) and
-     * the Twemoji SVGs (from cdnjs) — directly into the HTML.
+     * at view time — the `<discord-*>` web component runtime and the gg sans font
+     * (from jsDelivr) and the Twemoji SVGs (from cdnjs) — directly into the HTML.
      *
      * Without this the file needs internet access whenever it is *opened*: offline,
      * behind a CDN-blocking network or after a CDN outage the transcript renders
      * unstyled. It also means every viewer's IP reaches those CDNs, which may
      * matter for GDPR-sensitive ticket archives.
      *
-     * Costs roughly +550 kB per file and one download at generation time (cached
-     * per process). Discord's own CDN is untouched — use `saveImages` for that.
+     * Costs roughly +890 kB per file and one download at generation time (cached
+     * per process, shared between concurrent exports). Discord's own CDN
+     * (cdn.discordapp.com, media.discordapp.net) is not a third-party CDN and stays
+     * in use: avatars always load from it, attachment images unless `saveImages` is
+     * set, and embed images, stickers and custom emoji.
      *
      * Never fails the export: if an asset cannot be fetched, the CDN reference is
-     * kept and a warning is logged.
+     * kept and a warning naming the cause is logged. Combined with a stream return
+     * type the document is buffered first, so streaming saves no memory then.
      * @default false
      */
     inlineAssets: boolean;
     /**
-     * Per-request timeout in ms while downloading the assets for `inlineAssets`.
+     * Timeout in milliseconds for each download made by `inlineAssets`, including
+     * connection setup. A numeric string such as `'5000'` is accepted; anything
+     * that is not a positive whole number falls back to the default with a warning.
      * @default 30000
      */
     inlineAssetsTimeout: number;
     /**
      * Date order used whenever a message timestamp is older than yesterday
-     * (e.g. `11/08/2026 07:16`).
+     * (e.g. `11/08/2026 07:16`). Matched case-insensitively; an unknown value falls
+     * back to the default with a one-time warning.
      * @default 'dd/mm/yyyy'
      */
     dateFormat: 'dd/mm/yyyy' | 'mm/dd/yyyy';
     /**
      * Clock format for message timestamps — `'24h'` renders `07:16`,
-     * `'12h'` renders `07:16 AM`.
+     * `'12h'` renders `07:16 AM`. Matched case-insensitively; an unknown value
+     * falls back to the default with a one-time warning.
      * @default '24h'
      */
     timeFormat: '24h' | '12h';

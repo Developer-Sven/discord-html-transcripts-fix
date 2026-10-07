@@ -25,11 +25,27 @@ function pad2(n) {
 // Normalizes the user-facing options once, at render start, so every renderer
 // shares one reference "now" — otherwise a transcript rendered across midnight
 // could label the same day both "today" and with a full date.
+// Accepts the documented values case-insensitively ('12H', 'MM/DD/YYYY'); anything
+// else falls back to the default and is reported once per value instead of silently.
+const warnedChoices = new Set();
+function resolveChoice(name, value, allowed, fallback) {
+    if (value === undefined || value === null) return fallback;
+    const normalized = typeof value === 'string' ? value.trim().toLowerCase() : value;
+    if (allowed.includes(normalized)) return normalized;
+    const key = name + ':' + String(value);
+    if (!warnedChoices.has(key)) {
+        warnedChoices.add(key);
+        console.warn(`[discord-html-transcripts-fix] ${name} must be one of ${allowed.map((a) => `'${a}'`).join(', ')} ` +
+            `(got ${typeof value === 'string' ? JSON.stringify(value) : String(value)}); using '${fallback}'.`);
+    }
+    return fallback;
+}
+
 function resolveTimestampFormat(options) {
     const o = options || {};
     return {
-        dateFormat: o.dateFormat === 'mm/dd/yyyy' ? 'mm/dd/yyyy' : DEFAULT_TIMESTAMP_FORMAT.dateFormat,
-        timeFormat: o.timeFormat === '12h' ? '12h' : DEFAULT_TIMESTAMP_FORMAT.timeFormat,
+        dateFormat: resolveChoice('dateFormat', o.dateFormat, ['dd/mm/yyyy', 'mm/dd/yyyy'], DEFAULT_TIMESTAMP_FORMAT.dateFormat),
+        timeFormat: resolveChoice('timeFormat', o.timeFormat, ['24h', '12h'], DEFAULT_TIMESTAMP_FORMAT.timeFormat),
         now: o.now instanceof Date ? o.now : new Date(),
     };
 }

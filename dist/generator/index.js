@@ -182,14 +182,12 @@ async function render(_a) {
 
     const { prelude } = await (0, static_1.prerenderToNodeStream)(docTree);
 
-    // `hydrate` used to additionally push the finished markup through
-    // @lit-labs/ssr. That round-trip was measured to contribute exactly four
-    // inert <!--lit-part--> comments and nothing else — the page never loads a
-    // lit hydration client, and the <discord-*> elements hydrate themselves once
-    // their definitions are registered. Two dependencies (and the deprecated
-    // node-fetch → fetch-blob → node-domexception chain they dragged along) for
-    // four comments was a bad trade, so the round-trip is gone. The option keeps
-    // its real effect: it enables the spoiler-reveal script emitted above.
+    // `hydrate` needs no branch of its own here. It used to push the finished
+    // markup through @lit-labs/ssr, which contributed only four inert
+    // <!--lit-part--> comments and was removed; its remaining effect, the
+    // spoiler-reveal script, is already part of the tree above. A leftover
+    // `if (options.hydrate) return string` kept overriding the stream contract,
+    // so hydrate + stream handed callers a string where they expect a Readable.
     const wantsStream = options.returnType === 'stream' || options.stream;
 
     if (options.inlineAssets) {
@@ -199,11 +197,9 @@ async function render(_a) {
         const markup = await (0, selfContained_1.inlineExternalAssets)(await (0, utils_1.streamToString)(prelude), {
             timeout: options.inlineAssetsTimeout,
         });
-        return wantsStream ? stream_1.Readable.from([markup]) : markup;
-    }
-
-    if (options.hydrate) {
-        return await (0, utils_1.streamToString)(prelude);
+        // Same chunk type as the plain stream: Buffers, not one object-mode string
+        // (consumers that Buffer.concat() the chunks would otherwise throw).
+        return wantsStream ? stream_1.Readable.from([Buffer.from(markup, 'utf8')], { objectMode: false }) : markup;
     }
 
     if (wantsStream) {

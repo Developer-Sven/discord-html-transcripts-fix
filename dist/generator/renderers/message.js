@@ -54,12 +54,6 @@ const FLAG_SUPPRESS_NOTIFICATIONS = 1 << 12;
 const FLAG_IS_VOICE_MESSAGE = 1 << 13;
 const ACTIVITY_TYPES = { 1: 'Join', 2: 'Spectate', 3: 'Listen', 5: 'Join Request' };
 
-function abbrCount(n) {
-    if (n < 1000) return String(n);
-    if (n < 1000000) return (n / 1000).toFixed(n < 10000 ? 1 : 0).replace(/\.0$/, '') + 'K';
-    return (n / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-}
-
 function t(context, key, fallback) {
     const dict = context?.i18n?.[context?.lang] || context?.i18n?.en || {};
     return dict[key] || fallback || key;
@@ -246,7 +240,9 @@ async function DiscordMessage({ message, context }) {
                         return ((0, jsx_runtime_1.jsx)("discord-reaction", {
                             name: reaction.emoji?.name || ':unknown:',
                             emoji: (0, utils_1.parseDiscordEmoji)(reaction.emoji) || undefined,
-                            count: abbrCount(total),
+                            // <discord-reaction> declares `count` as a Number and renders
+                            // it as one: an abbreviated "1.5K" showed up as NaN.
+                            count: total,
                             title,
                             "data-burst": burst ? 'true' : undefined,
                             className: burst ? 'dht-reaction--burst' : undefined,

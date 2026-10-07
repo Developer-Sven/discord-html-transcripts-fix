@@ -418,6 +418,17 @@ test('a super reaction is marked as one, with its color', async (t) => {
     assert.match(reaction.get('style'), /box-shadow:inset 0 0 0 2px #ff8800/);
 });
 
+test('large reaction counts reach the component as numbers', async (t) => {
+    const reaction = (count, name) => ({ count, count_details: { burst: 0, normal: count }, me: false, me_burst: false, burst_colors: [], emoji: { id: null, name } });
+    const { body } = await render(t, (w) => [w.message({
+        createdAt: at(0, 9, 32),
+        content: 'popular',
+        reactions: [reaction(1500, '\u{1F525}'), reaction(2500000, '\u{1F680}')],
+    })]);
+    // The component parses `count` with Number(): "1.5K" would render as NaN.
+    assert.deepEqual(tags(body, 'discord-reaction').map((r) => r.get('count')), ['1500', '2500000']);
+});
+
 test('a voice message shows its duration', async (t) => {
     const { body } = await render(t, (w) => [w.message({
         createdAt: at(0, 9, 20),

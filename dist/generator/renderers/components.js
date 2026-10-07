@@ -31,7 +31,7 @@ function ComponentRow({ component, id, context, }) {
         }
         case discord_js_1.ComponentType.File: {
             // <discord-file-attachment> turns href into a link without checking it.
-            const attachmentComponent = (0, jsx_runtime_1.jsx)("discord-file-attachment", { href: (0, utils_1.safeImageSrc)(component.file?.url) });
+            const attachmentComponent = (0, jsx_runtime_1.jsx)("discord-file-attachment", { href: (0, utils_1.safeLinkHref)(component.file?.url) });
             if (component.spoiler) {
                 return ((0, jsx_runtime_1.jsx)("discord-spoiler", { slot: "attachment", children: attachmentComponent }, component.id));
             }
@@ -55,7 +55,7 @@ function Component({ component, id, }) {
     var _a;
     switch (component.type) {
         case discord_js_1.ComponentType.Button:
-            return ((0, jsx_runtime_1.jsx)(Button_1.default, { type: styles_1.ButtonStyleMapping[component.style], url: (_a = component.url) !== null && _a !== void 0 ? (0, utils_1.safeHref)(_a) : undefined, emoji: component.emoji ? (0, utils_1.parseDiscordEmoji)(component.emoji) : undefined, children: component.label }, id));
+            return ((0, jsx_runtime_1.jsx)(Button_1.default, { type: styles_1.ButtonStyleMapping[component.style], url: (_a = component.url) !== null && _a !== void 0 ? (0, utils_1.safeLinkHref)(_a) : undefined, emoji: component.emoji ? (0, utils_1.parseDiscordEmoji)(component.emoji) : undefined, children: component.label }, id));
         case discord_js_1.ComponentType.StringSelect:
         case discord_js_1.ComponentType.UserSelect:
         case discord_js_1.ComponentType.RoleSelect:

@@ -10,6 +10,7 @@ exports.streamToString = streamToString;
 exports.safeJsonForScript = safeJsonForScript;
 exports.safeHref = safeHref;
 exports.safeImageSrc = safeImageSrc;
+exports.safeLinkHref = safeLinkHref;
 exports.safeColor = safeColor;
 exports.safeImageMime = safeImageMime;
 exports.escapeHtml = escapeHtml;
@@ -206,6 +207,15 @@ function safeImageSrc(url) {
     } catch (_e) {
         return undefined;
     }
+}
+
+// For links a component renders without checking them: what safeHref allows, plus
+// the two Discord schemes such links legitimately carry — discord: (link buttons into
+// the client) and attachment:// (file components). Neither runs anything.
+function safeLinkHref(url) {
+    if (typeof url !== 'string' || !url) return undefined;
+    if (/^discord:/i.test(url.trim()) || /^attachment:\/\//i.test(url.trim())) return url;
+    return safeHref(url);
 }
 
 function safeColor(c, fallback = '#5865F2') {

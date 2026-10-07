@@ -37,7 +37,7 @@ async function DiscordEmbed({ embed, context }) {
 
     // Image-only embeds (link previews): render the image alone with optional caption
     if (type === 'image' && safeImg) {
-        return (0, jsx_runtime_1.jsx)("div", { className: "dht-embed dht-embed--image", children: (0, jsx_runtime_1.jsx)("a", { href: url || safeImg, target: "_blank", rel: "noreferrer", children: (0, jsx_runtime_1.jsx)("img", { src: safeImg, alt: embed.title || '', className: "dht-embed-image", loading: "lazy" }) }) });
+        return (0, jsx_runtime_1.jsx)("div", { className: "dht-embed dht-embed--image", children: (0, jsx_runtime_1.jsx)("a", { href: url || (0, utils_1.safeHref)(imageUrl), target: "_blank", rel: "noreferrer", children: (0, jsx_runtime_1.jsx)("img", { src: safeImg, alt: embed.title || '', className: "dht-embed-image", loading: "lazy" }) }) });
     }
     // GIFV — auto-play loop video
     if (type === 'gifv' && safeVid) {
@@ -46,7 +46,7 @@ async function DiscordEmbed({ embed, context }) {
     // Video embed (YouTube/Vimeo/etc.) — show thumbnail with a play overlay linking to original
     if (type === 'video' && (safeVid || safeImg)) {
         return (0, jsx_runtime_1.jsxs)("div", { className: "dht-embed dht-embed--video", children: [
-            (0, jsx_runtime_1.jsxs)("a", { href: url || safeVid || safeImg, target: "_blank", rel: "noreferrer", className: "dht-embed-video-wrap", children: [
+            (0, jsx_runtime_1.jsxs)("a", { href: url || safeVid || (0, utils_1.safeHref)(imageUrl), target: "_blank", rel: "noreferrer", className: "dht-embed-video-wrap", children: [
                 safeImg && (0, jsx_runtime_1.jsx)("img", { src: safeImg, alt: embed.title || '', className: "dht-embed-video-thumb", loading: "lazy" }),
                 (0, jsx_runtime_1.jsx)("div", { className: "dht-embed-video-play", children: '▶' })
             ] }),

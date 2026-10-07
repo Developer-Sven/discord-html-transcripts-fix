@@ -507,6 +507,28 @@ test('a system message of a type without its own wording shows as a neutral line
     assert.match(german.body, /<span data-i18n="systemMessage">Systemnachricht<\/span>/);
 });
 
+test('link buttons keep discord:// targets, and a link never takes an image-only URL', async (t) => {
+    const { body } = await render(t, (w) => [
+        w.message({
+            createdAt: at(0, 9, 39),
+            authorKey: 'bot',
+            content: 'jump',
+            components: [{
+                type: 1,
+                components: [
+                    { type: 2, style: 5, label: 'Open channel', url: 'discord://-/channels/1/2' },
+                    { type: 2, style: 5, label: 'Website', url: 'https://example.com/' },
+                ],
+            }],
+        }),
+        w.message({ createdAt: at(0, 9, 40), embeds: [{ type: 'image', thumbnail: { url: 'data:image/png;base64,QUJD' } }] }),
+    ]);
+    const buttons = tags(body, 'a').filter((a) => a.get('class')?.includes('discord-button'));
+    assert.deepEqual(buttons.map((a) => a.get('href')), ['discord://-/channels/1/2', 'https://example.com/']);
+    // The inline image is shown, but it is no link target.
+    assert.match(body, /<a href="#"[^>]*><img src="data:image\/png;base64,QUJD"/);
+});
+
 test('a voice message shows its duration', async (t) => {
     const { body } = await render(t, (w) => [w.message({
         createdAt: at(0, 9, 20),

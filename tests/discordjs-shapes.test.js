@@ -541,11 +541,39 @@ test('a failed image download keeps the image linked instead of failing the expo
             message_reference: { type: 1, message_id: '1100000000000088812', channel_id: IDS.otherChannel, guild_id: IDS.guild },
             message_snapshots: [{ message: forwardSnapshot }],
         }),
-    ], { callbacks: { resolveImageSrc: async () => { throw new Error('connection reset while downloading'); } } });
+    ], {
+        callbacks: {
+            resolveImageSrc: async () => {
+                // What an HTTP client's error looks like: the request rides along.
+                throw Object.assign(new Error('connection reset while downloading'), { config: { headers: { Authorization: 'Bearer SECRET-TOKEN' } } });
+            },
+        },
+    });
     const sources = tags(body, 'img').map((img) => img.get('src'));
     assert.ok(sources.includes(image.url), 'the own image keeps its link');
     assert.ok(sources.includes(forwardSnapshot.attachments[0].url), 'the forwarded image keeps its link');
-    assert.equal(warn.mock.calls.filter((call) => call.arguments.join(' ').includes('could not save image')).length, 2);
+    const logged = warn.mock.calls.map((call) => require('node:util').format(...call.arguments)).filter((line) => line.includes('could not save image'));
+    assert.equal(logged.length, 2);
+    assert.ok(logged.every((line) => line.includes('connection reset while downloading')), 'the reason is logged');
+    assert.ok(logged.every((line) => !line.includes('SECRET-TOKEN')), 'what the error carries is not');
+});
+
+test('link and image URL checks keep each kind of URL in its place', () => {
+    const { safeLinkHref, safeImageSrc } = require('../dist/utils/utils.js');
+    // Links: web, mailto, discord: and attachment:// — never an image-only or a script URL.
+    for (const good of ['https://example.com/x', 'mailto:a@example.com', 'discord://-/channels/1/2', 'attachment://invoice.pdf']) {
+        assert.equal(safeLinkHref(good), good, good);
+    }
+    for (const bad of ['data:image/png;base64,AA', 'data:text/html,x', 'javascript:alert(1)', 'java\tscript:alert(1)', 'discord://javascript:alert(1)']) {
+        assert.equal(safeLinkHref(bad), '#', bad);
+    }
+    // Image sources: web, inline images and attachment:// — never a script URL or a mail link.
+    for (const good of ['https://cdn.discordapp.com/a.png', 'data:image/png;base64,AA', 'attachment://a.png']) {
+        assert.equal(safeImageSrc(good), good, good);
+    }
+    for (const bad of ['javascript:alert(1)', 'data:text/html,x', 'mailto:a@example.com', 'discord://-/channels/1/2']) {
+        assert.equal(safeImageSrc(bad), undefined, bad);
+    }
 });
 
 test('a voice message shows its duration', async (t) => {

@@ -11,6 +11,7 @@ exports.safeJsonForScript = safeJsonForScript;
 exports.safeHref = safeHref;
 exports.safeImageSrc = safeImageSrc;
 exports.safeLinkHref = safeLinkHref;
+exports.describeError = describeError;
 exports.safeColor = safeColor;
 exports.safeImageMime = safeImageMime;
 exports.escapeHtml = escapeHtml;
@@ -214,8 +215,27 @@ function safeImageSrc(url) {
 // the client) and attachment:// (file components). Neither runs anything.
 function safeLinkHref(url) {
     if (typeof url !== 'string' || !url) return undefined;
-    if (/^discord:/i.test(url.trim()) || /^attachment:\/\//i.test(url.trim())) return url;
+    const trimmed = url.trim();
+    if (/^attachment:\/\//i.test(trimmed)) return url;
+    if (/^discord:/i.test(trimmed)) {
+        try {
+            new URL(trimmed);
+            return url;
+        } catch (_e) {
+            return '#';
+        }
+    }
     return safeHref(url);
+}
+
+// An error for a log line: its message and stack only. A whole error object can
+// carry what a caller's HTTP client attached to it, request headers included.
+function describeError(err) {
+    try {
+        return err instanceof Error ? (err.stack || err.message) : String(err);
+    } catch (_e) {
+        return 'an error that cannot be printed';
+    }
 }
 
 function safeColor(c, fallback = '#5865F2') {

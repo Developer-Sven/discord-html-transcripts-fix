@@ -31,7 +31,9 @@ function ComponentRow({ component, id, context, }) {
         }
         case discord_js_1.ComponentType.File: {
             // <discord-file-attachment> turns href into a link without checking it.
-            const attachmentComponent = (0, jsx_runtime_1.jsx)("discord-file-attachment", { href: (0, utils_1.safeLinkHref)(component.file?.url) });
+            const fileHref = (0, utils_1.safeLinkHref)(component.file?.url);
+            // A rejected link gets no href at all: "#" would open the transcript itself.
+            const attachmentComponent = (0, jsx_runtime_1.jsx)("discord-file-attachment", { href: fileHref === '#' ? undefined : fileHref });
             if (component.spoiler) {
                 return ((0, jsx_runtime_1.jsx)("discord-spoiler", { slot: "attachment", children: attachmentComponent }, component.id));
             }

@@ -31,7 +31,7 @@ async function Attachment({ attachment, context, message }) {
                 // Rendering runs in async components outside the per-message boundary: a
                 // failed download (saveImages, a custom resolver) used to reject the whole
                 // export. The image keeps its link instead.
-                console.warn('[discord-html-transcripts-fix] could not save image', attachment.id, err);
+                console.warn('[discord-html-transcripts-fix] could not save image', attachment.id, (0, utils_1.describeError)(err));
                 downloaded = undefined;
             }
             if (downloaded !== null) {

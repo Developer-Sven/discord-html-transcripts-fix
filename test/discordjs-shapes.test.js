@@ -475,6 +475,20 @@ test('large reaction counts reach the component as numbers', async (t) => {
     assert.deepEqual(tags(body, 'discord-reaction').map((r) => r.get('count')), ['1500', '2500000']);
 });
 
+test('the stats footer counts one of something in the singular', async (t) => {
+    const oneOfEach = (w) => [w.message({
+        createdAt: at(0, 9, 35),
+        content: 'just me',
+        attachments: [{ id: '1100000000000070201', filename: 'a.png', size: 10, url: 'https://cdn.discordapp.com/attachments/1/2/a.png', proxy_url: 'https://media.discordapp.net/attachments/1/2/a.png', content_type: 'image/png', width: 8, height: 8 }],
+    })];
+    const english = await render(t, oneOfEach);
+    assert.match(english.body, /<footer class="dht-stats">1 message · 1 participant · 1 image · /);
+    const german = await render(t, oneOfEach, { language: 'de' });
+    assert.match(german.body, /<footer class="dht-stats">1 Nachricht · 1 Teilnehmer · 1 Bild · /);
+    const two = await render(t, (w) => [...oneOfEach(w), w.message({ createdAt: at(0, 9, 36), authorKey: 'bob', content: 'me too' })]);
+    assert.match(two.body, /<footer class="dht-stats">2 messages · 2 participants · 1 image · /);
+});
+
 test('a voice message shows its duration', async (t) => {
     const { body } = await render(t, (w) => [w.message({
         createdAt: at(0, 9, 20),

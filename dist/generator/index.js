@@ -264,10 +264,13 @@ function renderStatsFooter(stats, lang, i18n, opts) {
     }
 
     const dict = (i18n && i18n[lang]) || (i18n && i18n.en) || {};
+    // "1 message", not "1 messages".
+    const count = (n, one, many, fallbackOne, fallbackMany) =>
+        (n === 1 ? (dict[one] || fallbackOne) : (dict[many] || fallbackMany)).replace('{n}', String(n));
     const parts = [
-        (dict.statsMessages || '{n} messages').replace('{n}', values.messages),
-        (dict.statsParticipants || '{n} participants').replace('{n}', values.participants),
-        (dict.statsImages || '{n} images').replace('{n}', values.images),
+        count(stats.messageCount, 'statsMessage', 'statsMessages', '{n} message', '{n} messages'),
+        count(stats.participantCount, 'statsParticipant', 'statsParticipants', '{n} participant', '{n} participants'),
+        count(stats.imageCount, 'statsImage', 'statsImages', '{n} image', '{n} images'),
     ];
     if (values.from && values.to) parts.push(values.from + ' → ' + values.to);
     if (values.span) parts.push(values.span);

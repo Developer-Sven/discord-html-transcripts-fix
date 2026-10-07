@@ -80,6 +80,10 @@ const decodeEntities = (value) => value
     .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(Number(dec)))
     .replace(/&(amp|quot|lt|gt);/g, (_, name) => ({ amp: '&', quot: '"', lt: '<', gt: '>' })[name]);
 
+// Attributes whose value is used as a URL — by the browser, or by a component that
+// puts it into its own <a href> or <img src> without checking it.
+const URL_ATTRIBUTE = /^(href|src|action|formaction|poster|url|image|thumbnail|avatar|icon|emoji)$|-(url|image|avatar|icon)$/i;
+
 /** No user-controlled text may turn into markup that runs: event handlers or script URLs. */
 function assertNoActiveContent(html) {
     // Outside the scripts and styles this library ships itself. React quotes every
@@ -89,7 +93,7 @@ function assertNoActiveContent(html) {
     for (const [tag, attributeList] of markup.matchAll(/<[a-zA-Z][\w-]*([^>]*)>/g)) {
         for (const [, name, value = ''] of attributeList.matchAll(/\s([^\s=>"'/]+)(?:="([^"]*)")?/g)) {
             if (/^on/i.test(name)) assert.fail(`an event handler attribute reached the markup: ${tag.slice(0, 200)}`);
-            if (!/^(href|src|action|formaction)$/i.test(name) || value === REACT_BLOCKED_URL) continue;
+            if (!URL_ATTRIBUTE.test(name) || value === REACT_BLOCKED_URL) continue;
             // Browsers ignore control characters and whitespace inside a scheme.
             const url = decodeEntities(value).replace(/[\u0000- ]/g, '').toLowerCase();
             const scriptUrl = /^(javascript|vbscript):/.test(url) || (url.startsWith('data:') && !url.startsWith('data:image/'));
@@ -129,6 +133,9 @@ test('the guards catch what they exist for', () => {
     assert.throws(() => assertNoActiveContent('<a href="javascript:alert(1)">x</a>'), /script URL/);
     assert.throws(() => assertNoActiveContent('<a href="java&#x9;script:alert(1)">x</a>'), /script URL/);
     assert.throws(() => assertNoActiveContent('<a href="data:text/html,x">x</a>'), /script URL/);
+    assert.throws(() => assertNoActiveContent('<discord-embed author-image="javascript:alert(1)">'), /script URL/);
+    assert.throws(() => assertNoActiveContent('<discord-file-attachment href="javascript:alert(1)">'), /script URL/);
+    assert.doesNotThrow(() => assertNoActiveContent('<discord-file-attachment href="attachment://invoice.pdf" data-text="javascript: is just text here">'));
     // Escaped text inside a value is data, not markup.
     assert.doesNotThrow(() => assertNoActiveContent('<a href="https://x/&quot;&gt;&lt;svg onload=alert(1)&gt;">x</a>'));
     assert.doesNotThrow(() => assertNoActiveContent(`<a href="${REACT_BLOCKED_URL}">x</a><img src="data:image/png;base64,AA"><script>a.onclick=1</script>`));

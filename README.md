@@ -253,6 +253,7 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 - **Critical fix** markdown links with `javascript:`, `data:`, `vbscript:` and other dangerous URI schemes are rewritten to `#`
 - **Hardened** inline `style="color:…"` sinks in the mention popup are hex-validated to block CSS injection
 - **Hardened** `data:` URI MIME types from the image downloader are restricted to image types only (no `text/html` smuggling)
+- **Hardened** URLs that components render as links or images without checking them — embed author icons, thumbnails, images and footer icons, Components V2 thumbnails, media galleries and file links, link buttons — only pass as web URLs, inline images or `attachment://`. A `javascript:` file link in a Components V2 message used to stay clickable
 - **Fixed** `process.exit(1)` on discord.js version mismatch removed — library no longer kills the host bot
 
 ### Robustness

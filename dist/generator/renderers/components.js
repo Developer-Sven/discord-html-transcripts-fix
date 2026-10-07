@@ -30,7 +30,8 @@ function ComponentRow({ component, id, context, }) {
             return ((0, jsx_runtime_1.jsx)(Container_1.default, { accentColor: accentColor, spoiler: spoiler, children: (0, jsx_runtime_1.jsx)(jsx_runtime_1.Fragment, { children: component.components.map((nestedComponent, id) => ((0, jsx_runtime_1.jsx)(ComponentRow, { component: nestedComponent, id: id, context: context }, id))) }) }, id));
         }
         case discord_js_1.ComponentType.File: {
-            const attachmentComponent = (0, jsx_runtime_1.jsx)("discord-file-attachment", { href: component.file.url });
+            // <discord-file-attachment> turns href into a link without checking it.
+            const attachmentComponent = (0, jsx_runtime_1.jsx)("discord-file-attachment", { href: (0, utils_1.safeImageSrc)(component.file?.url) });
             if (component.spoiler) {
                 return ((0, jsx_runtime_1.jsx)("discord-spoiler", { slot: "attachment", children: attachmentComponent }, component.id));
             }
@@ -54,7 +55,7 @@ function Component({ component, id, }) {
     var _a;
     switch (component.type) {
         case discord_js_1.ComponentType.Button:
-            return ((0, jsx_runtime_1.jsx)(Button_1.default, { type: styles_1.ButtonStyleMapping[component.style], url: (_a = component.url) !== null && _a !== void 0 ? _a : undefined, emoji: component.emoji ? (0, utils_1.parseDiscordEmoji)(component.emoji) : undefined, children: component.label }, id));
+            return ((0, jsx_runtime_1.jsx)(Button_1.default, { type: styles_1.ButtonStyleMapping[component.style], url: (_a = component.url) !== null && _a !== void 0 ? (0, utils_1.safeHref)(_a) : undefined, emoji: component.emoji ? (0, utils_1.parseDiscordEmoji)(component.emoji) : undefined, children: component.label }, id));
         case discord_js_1.ComponentType.StringSelect:
         case discord_js_1.ComponentType.UserSelect:
         case discord_js_1.ComponentType.RoleSelect:
@@ -62,7 +63,7 @@ function Component({ component, id, }) {
         case discord_js_1.ComponentType.ChannelSelect:
             return (0, jsx_runtime_1.jsx)(Select_Menu_1.default, { component: component }, id);
         case discord_js_1.ComponentType.Thumbnail:
-            return (0, jsx_runtime_1.jsx)(Thumbnail_1.default, { url: component.media.url }, id);
+            return (0, jsx_runtime_1.jsx)(Thumbnail_1.default, { url: (0, utils_1.safeImageSrc)(component.media?.url) }, id);
         default:
             return undefined;
     }

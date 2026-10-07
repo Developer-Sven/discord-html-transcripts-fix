@@ -30,10 +30,10 @@ async function DiscordEmbed({ embed, context }) {
     const videoUrl = embed.video?.proxyURL ?? embed.video?.url;
     const provider = embed.provider?.name;
     const safeVid = videoUrl ? (0, utils_1.safeHref)(videoUrl) : null;
-    const safeImg = imageUrl ? (0, utils_1.safeHref)(imageUrl) : null;
+    const safeImg = (0, utils_1.safeImageSrc)(imageUrl) ?? null;
     // The rich card already shows `thumbnail` itself, so a preview that falls
     // through to it (a GIF without a video, say) must not appear twice.
-    const safeOwnImg = ownImageUrl ? (0, utils_1.safeHref)(ownImageUrl) : null;
+    const safeOwnImg = (0, utils_1.safeImageSrc)(ownImageUrl) ?? null;
 
     // Image-only embeds (link previews): render the image alone with optional caption
     if (type === 'image' && safeImg) {
@@ -57,11 +57,12 @@ async function DiscordEmbed({ embed, context }) {
 
     // Default rich embed
     const title = embed.title ?? undefined;
-    const authorImage = embed.author?.proxyIconURL ?? embed.author?.iconURL;
+    // The component renders these unchecked; only web and inline image URLs pass.
+    const authorImage = (0, utils_1.safeImageSrc)(embed.author?.proxyIconURL ?? embed.author?.iconURL);
     const authorName = embed.author?.name;
     const authorUrl = embed.author?.url ? (0, utils_1.safeHref)(embed.author.url) : undefined;
     const color = embed.hexColor ? (0, utils_1.safeColor)(embed.hexColor, undefined) : undefined;
-    const thumb = embed.thumbnail?.proxyURL ?? embed.thumbnail?.url;
+    const thumb = (0, utils_1.safeImageSrc)(embed.thumbnail?.proxyURL ?? embed.thumbnail?.url);
 
     return ((0, jsx_runtime_1.jsxs)("discord-embed", {
         "embed-title": title,
@@ -89,7 +90,7 @@ async function DiscordEmbed({ embed, context }) {
                 // Attribute names are lowercased by HTML; `footerImage` arrived as
                 // `footerimage`, which the component does not observe, so footer
                 // icons never showed.
-                "footer-image": embed.footer.proxyIconURL ?? embed.footer.iconURL,
+                "footer-image": (0, utils_1.safeImageSrc)(embed.footer.proxyIconURL ?? embed.footer.iconURL),
                 timestamp: (0, utils_1.formatMessageTimestamp)(embed.timestamp, context?.timestampFormat, t(context, 'yesterdayAt', 'Yesterday at {time}')),
                 children: embed.footer.text
             }))

@@ -784,10 +784,29 @@ scenarios['hostile-content'] = (w) => {
                     description: '[embedded](javascript:alert(9))',
                     author: { name: '"><svg onload=alert(10)>', url: 'javascript:alert(11)', icon_url: 'javascript:alert(12)' },
                     fields: [{ name: '<img src=x onerror=alert(13)>', value: '</script>', inline: false }],
-                    footer: { text: '"onmouseover="alert(14)' },
+                    footer: { text: '"onmouseover="alert(14)', icon_url: 'javascript:alert(19)' },
+                    thumbnail: { url: 'javascript:alert(20)' },
+                    image: { url: 'data:text/html,<script>alert(21)</script>' },
                 }],
                 attachments: [attachment('1100000000000072100', '"><svg onload=alert(15)>.png', 'image/png', { description: '" onerror="alert(16)' })],
                 reactions: [{ count: 1, count_details: { burst: 0, normal: 1 }, me: false, me_burst: false, burst_colors: ['red;background:url(javascript:alert(17))'], emoji: { id: null, name: '"><img src=x onerror=alert(18)>' } }],
+            }),
+            // Components link to and show media themselves, without checking URLs.
+            w.message({
+                createdAt: at(0, 12, 2),
+                authorKey: 'bot',
+                flags: 1 << 15,
+                components: [
+                    {
+                        type: 17,
+                        components: [
+                            { type: 9, components: [{ type: 10, content: 'a section' }], accessory: { type: 11, media: { url: 'javascript:alert(22)' } } },
+                            { type: 12, items: [{ media: { url: 'javascript:alert(23)' } }] },
+                            { type: 13, file: { url: 'javascript:alert(24)' } },
+                        ],
+                    },
+                    { type: 1, components: [{ type: 2, style: 5, label: 'script', url: 'javascript:alert(25)' }, { type: 2, style: 5, label: 'data', url: 'data:text/html,<script>alert(26)</script>' }] },
+                ],
             }),
         ],
     };

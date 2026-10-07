@@ -9,6 +9,7 @@ exports.parseDiscordEmoji = parseDiscordEmoji;
 exports.streamToString = streamToString;
 exports.safeJsonForScript = safeJsonForScript;
 exports.safeHref = safeHref;
+exports.safeImageSrc = safeImageSrc;
 exports.safeColor = safeColor;
 exports.safeImageMime = safeImageMime;
 exports.escapeHtml = escapeHtml;
@@ -189,6 +190,21 @@ function safeHref(url) {
         return '#';
     } catch (_e) {
         return '#';
+    }
+}
+
+// For URLs that end up as an image source or a file link inside a component, which
+// renders them unchecked: web URLs, inline images, and Discord's attachment://
+// references. Anything else — javascript:, other data: — becomes undefined.
+function safeImageSrc(url) {
+    if (typeof url !== 'string' || !url) return undefined;
+    const trimmed = url.trim();
+    if (/^data:image\//i.test(trimmed) || /^attachment:\/\//i.test(trimmed)) return url;
+    try {
+        const proto = new URL(trimmed, 'https://example.invalid').protocol.toLowerCase();
+        return proto === 'http:' || proto === 'https:' ? url : undefined;
+    } catch (_e) {
+        return undefined;
     }
 }
 

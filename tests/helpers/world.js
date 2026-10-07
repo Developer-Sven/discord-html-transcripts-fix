@@ -52,6 +52,10 @@ const IDS = {
     bob: '1100000000000000011',
     botUser: '1100000000000000012',
     webhookUser: '1100000000000000013',
+    carol: '1100000000000000014',
+    dave: '1100000000000000015',
+    verifiedBot: '1100000000000000016',
+    stranger: '1100000000000000017',
     application: '1100000000000000020',
     command: '1100000000000000030',
     customEmoji: '1100000000000000040',
@@ -98,6 +102,14 @@ const USERS = {
     alice: user(IDS.alice, 'alice', 'Alice'),
     bob: user(IDS.bob, 'bob', null),
     bot: user(IDS.botUser, 'helper-bot', 'Helper Bot', { bot: true }),
+    // An animated avatar hash: Discord's CDN answers some of them with 415 as .gif.
+    carol: user(IDS.carol, 'carol', 'Carol', { avatar: 'a_0123456789abcdef0123456789abcdef' }),
+    // Has an avatar of their own and a different one on this server.
+    dave: user(IDS.dave, 'dave', 'Dave', { avatar: '0123456789abcdef0123456789abcdef' }),
+    verifiedBot: user(IDS.verifiedBot, 'verified-bot', 'Verified Bot', { bot: true, public_flags: 1 << 16 }),
+    // Not in the member cache, and its messages carry no member: what a message
+    // fetched over REST from someone who left looks like.
+    stranger: user(IDS.stranger, 'stranger', 'Stranger'),
 };
 
 function memberPayload(roles, nick = null) {
@@ -114,6 +126,16 @@ function memberPayload(roles, nick = null) {
         communication_disabled_until: null,
     };
 }
+
+// The guild member behind each user key; the stranger has none.
+const MEMBERS = {
+    alice: () => memberPayload([IDS.roleMod, IDS.roleVip], 'Ally'),
+    bob: () => memberPayload([]),
+    bot: () => memberPayload([IDS.roleNoColor]),
+    carol: () => memberPayload([]),
+    dave: () => ({ ...memberPayload([]), avatar: 'fedcba9876543210fedcba9876543210' }),
+    verifiedBot: () => memberPayload([]),
+};
 
 function createWorld() {
     increment = 0;
@@ -168,9 +190,7 @@ function createWorld() {
     }, guild);
 
     // Members land in the guild cache so mentions and colors resolve without REST.
-    guild.members._add({ ...memberPayload([IDS.roleMod, IDS.roleVip], 'Ally'), user: USERS.alice });
-    guild.members._add({ ...memberPayload([]), user: USERS.bob });
-    guild.members._add({ ...memberPayload([IDS.roleNoColor]), user: USERS.bot });
+    for (const [key, member] of Object.entries(MEMBERS)) guild.members._add({ ...member(), user: USERS[key] });
 
     // A forum channel with tags and one post (a thread) that has two of them applied.
     const forum = client.channels._add({
@@ -219,10 +239,9 @@ function createWorld() {
             const createdAt = raw.createdAt || at(0, 12, 0);
             const authorKey = raw.authorKey || 'alice';
             const author = raw.author || USERS[authorKey];
+            // An explicit author is someone else: it must not inherit a fixture user's member.
             const member = raw.member === undefined
-                ? (authorKey === 'alice' ? memberPayload([IDS.roleMod, IDS.roleVip], 'Ally')
-                    : authorKey === 'bob' ? memberPayload([])
-                        : authorKey === 'bot' ? memberPayload([IDS.roleNoColor]) : undefined)
+                ? (raw.author ? undefined : MEMBERS[authorKey]?.())
                 : raw.member;
             const payload = {
                 id: raw.id || snowflakeAt(createdAt),

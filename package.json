@@ -41,6 +41,9 @@
     "twemoji": "^14.0.2",
     "undici": "^7.29.1"
   },
+  "devDependencies": {
+    "discord.js": "14.27.0"
+  },
   "peerDependencies": {
     "discord.js": "^14.0.0 || ^15.0.0",
     "sharp": ">=0.30.0"
@@ -55,6 +58,7 @@
   },
   "scripts": {
     "test": "node --test",
+    "test:update": "node --test tests/golden.test.js",
     "prepublishOnly": "node -e \"require('fs').accessSync('dist/index.js'); require('fs').accessSync('dist/index.d.ts');\" || (echo 'dist/index.js or dist/index.d.ts missing — refusing to publish' && exit 1)"
   },
   "publishConfig": {

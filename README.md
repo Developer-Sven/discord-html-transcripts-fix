@@ -318,6 +318,18 @@ In addition to plain text, replies, embeds, and attachments, the viewer supports
 | `TranscriptImageDownloader` | Builder for a custom image-saving callback (`withMaxSize`, `withConcurrency`, `withCompression`, `build`). |
 | `DiscordMessages` | The underlying React component, for advanced/custom rendering. |
 
+## Development
+
+```bash
+npm test
+npm run test:update
+```
+
+`npm test` runs the unit tests and the golden transcripts: every scenario in
+`tests/fixtures/scenarios.js` is rendered from real discord.js objects and compared with
+`tests/golden/`. After an intended change to the output, `npm run test:update` rewrites
+the snapshots — review the diff before committing it.
+
 ## License
 
 [Apache-2.0](./LICENSE) — same as the original package.

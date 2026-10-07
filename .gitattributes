@@ -1,0 +1,4 @@
+# Golden snapshots are compared byte for byte; keep them LF on every checkout,
+# whatever core.autocrlf says.
+tests/golden/*.html text eol=lf
+tests/golden/*.json text eol=lf

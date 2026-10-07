@@ -1,0 +1,368 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" as="image" href="https://cdn.discordapp.com/attachments/1100000000000000100/1100000000000071001/pic.png"/><link rel="preconnect" href="https://cdn.jsdelivr.net/"/><link rel="preconnect" href="https://cdn.discordapp.com"/><title>ticket-0042</title><style><!-- static: ggSansFont --></style><style>
+  .discord-container {
+    display: grid;
+    gap: 4px;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .discord-base-image {
+    overflow: hidden;
+    position: relative;
+    background: #2b2d31;
+  }
+
+  .discord-button {
+    color: #ffffff !important;
+    padding: 2px 16px;
+    border-radius: 8px;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    height: 32px;
+    min-height: 32px;
+    min-width: 60px;
+    cursor: pointer;
+    font-family: Whitney, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    text-align: center;
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+    transition: background-color 0.2s ease;
+  }
+
+  .discord-button-primary {
+    background-color: hsl(234.935 calc(1*85.556%) 64.706% /1);
+  }
+
+  .discord-button-secondary {
+    background-color: hsl(240 calc(1*4%) 60.784% /0.12156862745098039);
+  }
+
+  .discord-button-success {
+    background-color: hsl(145.97 calc(1*100%) 26.275% /1);
+  }
+
+  .discord-button-destructive {
+    background-color: hsl(355.636 calc(1*64.706%) 50% /1);
+  }
+
+  .discord-select-menu {
+    margin-top: 2px;
+    margin-bottom: 2px;
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    height: 40px;
+    background-color: #2b2d31;
+    border-radius: 4px;
+    color: #b5bac1;
+    cursor: pointer;
+    font-family: Whitney, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    justify-content: space-between;
+    box-sizing: border-box;
+    border: 1px solid #1e1f22;
+  }
+
+  .discord-header {
+  	display: flex;
+  	flex-direction: row;
+  	max-height: 5rem;
+  	padding: 0.5rem;
+  	gap: 0.5rem;
+  	border-bottom: 1px solid rgba(79, 84, 92, 0.48);
+  }
+
+  .discord-header-icon {
+  	float: left;
+  	width: 5rem;
+  }
+
+  .discord-header-icon > div {
+  	background-color: rgb(79, 84, 92);
+  	border-radius: 50%;
+  	width: 5rem;
+  	height: 5rem;
+  	text-align: center;
+  	align-items: center;
+  	justify-content: center;
+  	display: flex;
+  	font-size: xx-large;
+  }
+
+  .discord-header-icon > img {
+  	border-radius: 50%;
+  	width: auto;
+  	height: 100%;
+  }
+
+  .discord-header-text {
+    flex-grow: 1;
+  }
+
+  .discord-header-text-guild {
+  	font-size: 1.5rem;
+  	font-weight: bold;
+  }
+
+  .reply-inline {
+    white-space: collapse;
+  }
+</style><style><!-- static: mentionPopupStyles --></style><style><!-- static: transcriptUtils --></style><style><!-- static: searchBarStyles --></style><style><!-- static: lightboxStyles --></style><style><!-- static: tocStyles --></style><style><!-- static: dateSeparatorStyles --></style><style><!-- static: markdownStyles --></style><style><!-- static: filterPanelStyles --></style><style>
+  .discord-attachment-container {
+    display: block;
+    position: relative;
+    max-width: min(100%, 525px);
+  }
+
+  .discord-attachment-container > img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+</style><style>
+  .hljs-ansi-control-sequence {
+  	display: none;
+  }
+
+  .hljs-ansi-style-bold {
+	  font-weight: 700;
+  }
+
+  .hljs-ansi-style-underline {
+  	text-decoration: underline;
+  }
+
+  .hljs-ansi-foreground-black .hljs-ansi-background-black,
+  .hljs-ansi-foreground-black .hljs-ansi-background-blue,
+  .hljs-ansi-foreground-black .hljs-ansi-background-cyan,
+  .hljs-ansi-foreground-black .hljs-ansi-background-green,
+  .hljs-ansi-foreground-black .hljs-ansi-background-magenta,
+  .hljs-ansi-foreground-black .hljs-ansi-background-red,
+  .hljs-ansi-foreground-black .hljs-ansi-background-white,
+  .hljs-ansi-foreground-black .hljs-ansi-background-yellow {
+  	color: #073642;
+  }
+
+  .hljs-ansi-foreground-red {
+	color: #dc322f;
+  }
+
+  .hljs-ansi-foreground-green {
+	color: #859900;
+  }
+
+  .hljs-ansi-foreground-yellow {
+	color: #b58900;
+  }
+
+  .hljs-ansi-foreground-blue {
+	color: #268bd2;
+  }
+
+  .hljs-ansi-foreground-magenta {
+	color: #d33682;
+  }
+
+  .hljs-ansi-foreground-cyan {
+	color: #2aa198;
+  }
+
+  .hljs-ansi-foreground-white {
+	color: var(--interactive-active);
+  }
+
+  .hljs-ansi-foreground-white .hljs-ansi-background-black,
+  .hljs-ansi-foreground-white .hljs-ansi-background-blue,
+  .hljs-ansi-foreground-white .hljs-ansi-background-cyan,
+  .hljs-ansi-foreground-white .hljs-ansi-background-green,
+  .hljs-ansi-foreground-white .hljs-ansi-background-magenta,
+  .hljs-ansi-foreground-white .hljs-ansi-background-red,
+  .hljs-ansi-foreground-white .hljs-ansi-background-white,
+  .hljs-ansi-foreground-white .hljs-ansi-background-yellow {
+	color: #eee8d5;
+  }
+
+  .hljs-ansi-background-black {
+	background-color: #002b36;
+  }
+
+  .hljs-ansi-background-red {
+	background-color: #cb4b16;
+  }
+
+  .hljs-ansi-background-green {
+	background-color: #586e75;
+  }
+
+  .hljs-ansi-background-yellow {
+	background-color: #657b83;
+  }
+
+  .hljs-ansi-background-blue {
+	background-color: #839496;
+  }
+
+  .hljs-ansi-background-magenta {
+	background-color: #6c71c4;
+  }
+
+  .hljs-ansi-background-cyan {
+	background-color: #93a1a1;
+  }
+
+  .hljs-ansi-background-white {
+	background-color: #fdf6e3;
+  }
+
+  .hljs-doctag,
+  .hljs-keyword,
+  .hljs-meta .hljs-keyword,
+  .hljs-template-tag,
+  .hljs-template-variable,
+  .hljs-type,
+  .hljs-variable.language_ {
+	color: #ff7b72;
+  }
+
+  .hljs-title,
+  .hljs-title.class_,
+  .hljs-title.class_.inherited__,
+  .hljs-title.function_ {
+	color: #d2a8ff;
+  }
+
+  .hljs-attr,
+  .hljs-attribute,
+  .hljs-literal,
+  .hljs-meta,
+  .hljs-number,
+  .hljs-operator,
+  .hljs-selector-attr,
+  .hljs-selector-class,
+  .hljs-selector-id,
+  .hljs-variable {
+	color: #79c0ff;
+  }
+
+  .hljs-meta .hljs-string,
+  .hljs-regexp,
+  .hljs-string {
+	color: #a5d6ff;
+  }
+
+  .hljs-built_in,
+  .hljs-symbol {
+	color: #ffa657;
+  }
+
+  .hljs-code,
+  .hljs-comment,
+  .hljs-formula {
+	color: #8b949e;
+  }
+
+  .hljs-name,
+  .hljs-quote,
+  .hljs-selector-pseudo,
+  .hljs-selector-tag {
+	color: #7ee787;
+  }
+
+  .hljs-subst {
+	color: #c9d1d9;
+  }
+
+  .hljs-section {
+	color: #1f6feb;
+	font-weight: 700;
+  }
+
+  .hljs-bullet {
+	color: #f2cc60;
+  }
+
+  .hljs-emphasis {
+	color: #c9d1d9;
+	font-style: italic;
+  }
+
+  .hljs-strong {
+	color: #c9d1d9;
+	font-weight: 700;
+  }
+
+  .hljs-addition {
+	color: #aff5b4;
+	background-color: #033a16;
+  }
+
+  .hljs-deletion {
+	color: #ffdcd7;
+	background-color: #67060c;
+  }
+</style><style>
+/* Ensure the host establishes a positioning context for the absolute pin indicator,
+   and clamp it inside the message box on narrow viewports. */
+/* Action-row buttons — Discord-like horizontal spacing */
+discord-action-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+.dht-v2-container discord-action-row,.dht-section-content discord-action-row{margin:6px 0}
+/* V2 container — Discord-like spacing inside block flow */
+.dht-v2-container .dht-heading,.dht-section-content .dht-heading{margin:8px 0 4px}
+.dht-v2-container .dht-heading:first-child,.dht-section-content .dht-heading:first-child{margin-top:0}
+.dht-v2-container .dht-v2-separator,.dht-section-content .dht-v2-separator{margin:8px 0}
+.dht-v2-container strong,.dht-section-content strong{display:inline;font-weight:700;color:#fff}
+.dht-v2-container .dht-mention,.dht-section-content .dht-mention{display:inline-block;vertical-align:baseline}
+/* System-message author — clickable like a user mention */
+.dht-sys-author{cursor:pointer;font-style:normal;font-weight:500}
+.dht-sys-author:hover{text-decoration:underline}
+.dht-msg-pinned{position:relative}
+.dht-app-badge,.dht-popup-badge{background:#5865F2;color:#fff;font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;font-weight:600}
+.dht-edit-marker{color:#949ba4;font-size:11px;margin-left:4px;cursor:help}
+.dht-suppressed{color:#6e727a;font-size:11px;font-style:italic}
+.dht-stickers{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.dht-sticker{width:160px;height:160px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.02)}
+.dht-poll{border:1px solid #2b2d31;background:#1e1f22;border-radius:8px;padding:12px 14px;margin-top:6px;max-width:480px}
+.dht-poll-q{font-weight:700;margin-bottom:8px;font-size:15px}
+.dht-poll-answers{display:flex;flex-direction:column;gap:6px}
+.dht-poll-a{background:#2b2d31;border-radius:6px;padding:6px 10px;position:relative;overflow:hidden}
+.dht-poll-bar{position:absolute;top:0;left:0;height:100%;background:rgba(88,101,242,.25);z-index:0}
+.dht-poll-line{position:relative;z-index:1;display:flex;justify-content:space-between;gap:8px}
+.dht-poll-pct{color:#b5bac1;font-size:12px;white-space:nowrap}
+.dht-poll-foot{margin-top:8px;font-size:11px;color:#949ba4}
+.dht-voice{display:inline-flex;align-items:center;gap:8px;background:#2b2d31;padding:6px 12px;border-radius:8px;color:#dbdee1;font-size:13px;margin:4px 0}
+.dht-voice-wave svg{display:block}
+.dht-voice-dur{color:#b5bac1;font-size:11px}
+.dht-forwarded-wrap{margin:4px 0}
+.dht-forwarded{border-left:3px solid #5865F2;background:rgba(88,101,242,.06);padding:6px 10px;border-radius:0 6px 6px 0;margin-bottom:4px}
+.dht-forwarded-head{font-size:12px;color:#949ba4;margin-bottom:2px}
+.dht-forwarded-icon{margin-right:4px}
+.dht-forwarded-body{color:#dbdee1}
+.dht-forwarded-attachments{margin-top:4px;font-size:11px;color:#949ba4}
+.dht-forwarded-media{margin-top:4px}
+.dht-edit-history{font-size:12px;color:#b5bac1;margin-top:4px}
+.dht-edit-history summary{cursor:pointer;color:#949ba4}
+.dht-edit-history li{margin-top:4px}
+.dht-edit-history time{display:block;color:#6e727a;font-size:10px;margin-bottom:2px}
+.dht-thread-badge{display:inline-block;background:#3f4248;color:#dbdee1;font-size:10px;padding:1px 6px;border-radius:4px;margin-left:6px}
+.dht-thread-badge--locked{background:#ED4245}
+.dht-thread-badge--archived{background:#6c757d}
+.dht-gifv{max-width:400px;max-height:300px;border-radius:6px}
+.dht-stats{margin:24px auto;padding:12px;text-align:center;color:#b5bac1;font-size:13px;font-family:"gg sans",sans-serif;border-top:1px solid #2b2d31;max-width:800px}
+.dht-mention--cmd{background:rgba(88,101,242,.22)!important}
+.dht-embed-provider{color:#949ba4;font-size:11px;margin-bottom:2px}
+.dht-embed-video{margin-top:6px;font-size:13px}
+.dht-embed-video a{color:#8ab4ff;text-decoration:none}
+.dht-embed-video a:hover{text-decoration:underline}
+.dht-automod-rule{font-size:11px;color:#949ba4}
+.dht-automod-content{margin:4px 0 0 12px;color:#dbdee1;border-left:3px solid #f23f42;padding-left:8px;font-size:13px}
+.dht-reaction--burst{box-shadow:inset 0 0 0 1px gold}
+</style><link rel="icon" type="image/png"/><script><!-- static: scrollToMessage --></script><script id="dht-data" type="application/json">{"profiles":{"1100000000000000010":{"author":"Ally","avatar":"https://cdn.discordapp.com/embed/avatars/1.png","roleColor":"#3498db","roleName":"Moderator","bot":false,"verified":false},"1100000000000000011":{"author":"bob","avatar":"https://cdn.discordapp.com/embed/avatars/1.png","roleColor":null,"bot":false,"verified":false}},"users":{"1100000000000000010":{"id":"1100000000000000010","username":"alice","displayName":"Ally","globalName":"Alice","avatar":"https://cdn.discordapp.com/embed/avatars/1.png","bannerColor":"#3498db","bot":false,"system":false,"verifiedBot":false,"flags":[],"joinedAt":"2024-01-01T00:00:00.000Z","createdAt":"2023-04-24T10:07:17.011Z","roles":[{"id":"1100000000000000002","name":"Moderator","color":"#3498db","position":3},{"id":"1100000000000000003","name":"VIP","color":"#e67e22","position":2}],"highestRole":{"name":"Moderator","color":"#3498db"}},"1100000000000000011":{"id":"1100000000000000011","username":"bob","displayName":"bob","globalName":null,"avatar":"https://cdn.discordapp.com/embed/avatars/1.png","bannerColor":null,"bot":false,"system":false,"verifiedBot":false,"flags":[],"joinedAt":"2024-01-01T00:00:00.000Z","createdAt":"2023-04-24T10:07:17.011Z","roles":[],"highestRole":null}},"roles":{"1100000000000000002":{"id":"1100000000000000002","name":"Moderator","color":"#3498db","position":3,"hoist":true,"mentionable":true,"memberCount":1,"managed":false},"1100000000000000003":{"id":"1100000000000000003","name":"VIP","color":"#e67e22","position":2,"hoist":false,"mentionable":true,"memberCount":1,"managed":false}},"channels":{},"lang":"en","i18n":{"en":{"edited":"changed","editedAt":"Edited at {time}","yesterdayAt":"Yday {time}","joined":"joined the server","pinned":"pinned {message} to this channel.","pinnedLink":"a message","boosted":"boosted the server!","threadStarted":"started a thread:","changedChannelName":"changed the channel name:","changedChannelIcon":"changed the channel icon.","usedCommand":"used","startedCall":"started a call.","addedFollow":"added {target} to follow this channel.","left":"left.","autoModBlocked":"AutoMod blocked a message.","serverAlert":"Server safety alert.","pollEnded":"A poll ended.","roleSubPurchased":"subscribed to {role}!","forwardedFrom":"Forwarded from","forwardUnavailable":"Forwarded message is unavailable","searchPlaceholder":"Search transcript…","ofMatches":"of","noMatches":"no matches","backToTop":"Back to top","tocTitle":"Participants","statsMessages":"{n} messages","statsParticipants":"{n} participants","statsImages":"{n} images","statsMessage":"{n} message","statsParticipant":"{n} participant","statsImage":"{n} image","crossServerReply":"Message from another server","appBadge":"APP","botBadge":"BOT","editHistoryTitle":"Edit history","editHistoryAt":"at","voiceMessage":"Voice message","forwardedMessage":"Forwarded","languageLabel":"Language","threadArchived":"Archived","threadLocked":"Locked","suppressedEmbeds":"(embeds hidden)","filterPanel":"Filter","filterKeyword":"Keyword","filterAuthor":"Author","filterRole":"Role","filterFrom":"From","filterTo":"To","filterPinned":"Pinned only","filterHasImage":"Has image","filterHasEmbed":"Has embed","filterHasAttachment":"Has attachment","filterHasComponentV2":"Has container","filterApply":"Apply","filterReset":"Reset","flags":"Badges"},"de":{"edited":"bearbeitet","editedAt":"Bearbeitet am {time}","yesterdayAt":"Gestern {time}","joined":"ist dem Server beigetreten","pinned":"hat {message} in diesem Channel angepinnt.","pinnedLink":"eine Nachricht","boosted":"hat den Server geboostet!","threadStarted":"hat einen Thread gestartet:","changedChannelName":"hat den Channel-Namen geändert:","changedChannelIcon":"hat das Channel-Icon geändert.","usedCommand":"hat","startedCall":"hat einen Anruf gestartet.","addedFollow":"hat {target} hinzugefügt, um diesem Channel zu folgen.","left":"hat den Channel verlassen.","autoModBlocked":"AutoMod hat eine Nachricht blockiert.","serverAlert":"Sicherheitswarnung.","pollEnded":"Eine Umfrage wurde beendet.","roleSubPurchased":"hat {role} abonniert!","forwardedFrom":"Weitergeleitet von","forwardUnavailable":"Weitergeleitete Nachricht ist nicht verfügbar","searchPlaceholder":"Im Transcript suchen…","ofMatches":"von","noMatches":"keine Treffer","backToTop":"Nach oben","tocTitle":"Teilnehmer","statsMessages":"{n} Nachrichten","statsParticipants":"{n} Teilnehmer","statsImages":"{n} Bilder","statsMessage":"{n} Nachricht","statsParticipant":"{n} Teilnehmer","statsImage":"{n} Bild","crossServerReply":"Nachricht von einem anderen Server","appBadge":"APP","botBadge":"BOT","editHistoryTitle":"Bearbeitungs-Verlauf","editHistoryAt":"am","voiceMessage":"Sprachnachricht","forwardedMessage":"Weitergeleitet","languageLabel":"Sprache","threadArchived":"Archiviert","threadLocked":"Gesperrt","suppressedEmbeds":"(Embeds versteckt)","filterPanel":"Filter","filterKeyword":"Suchbegriff","filterAuthor":"Author","filterRole":"Rolle","filterFrom":"Von","filterTo":"Bis","filterPinned":"Nur angepinnt","filterHasImage":"Mit Bild","filterHasEmbed":"Mit Embed","filterHasAttachment":"Mit Anhang","filterHasComponentV2":"Mit Container","filterApply":"Anwenden","filterReset":"Zurücksetzen","flags":"Abzeichen"}},"stats":{"messageCount":3,"participantCount":2,"imageCount":1,"firstTs":1776679200000,"lastTs":1779261360000,"spanMs":2582160000}}</script><script>try{globalThis.$discordMessage=JSON.parse(document.getElementById("dht-data").textContent);}catch(e){globalThis.$discordMessage={};}</script><script type="module" src="https://cdn.jsdelivr.net/npm/@skyra/discord-components-core@4.0.2/+esm" crossorigin="anonymous"></script></head><body style="margin:0;min-height:100vh"><discord-messages style="min-height:100vh"><div class="discord-header"><div class="discord-header-icon"><div><span>FG</span></div></div><div class="discord-header-text"><div class="discord-header-text-guild">Fixture Guild</div><div class="discord-header-text-channel">#<!-- -->ticket-0042</div>Support ticket for <!-- --><strong>Alice<!-- --></strong></div></div><div class="dht-date-sep">Monday, April 20, 2026</div><discord-message id="m-1495725716275200001" timestamp="20/04/2026 10:00" profile="1100000000000000010" class="dht-msg" data-author-id="1100000000000000010" data-author-name="ally" data-roles="1100000000000000001,1100000000000000002,1100000000000000003" data-timestamp="1776679200000" data-timestamp-iso="2026-04-20T10:00:00.000Z" data-text="an older message with an image" data-has-image="true" data-has-attachment="true">an older message with an image<!-- --><div slot="attachments" class="discord-attachment-container"><img src="https://cdn.discordapp.com/attachments/1100000000000000100/1100000000000071001/pic.png" alt="pic.png"/></div></discord-message><div class="dht-date-sep">Tuesday, May 19, 2026</div><discord-message id="m-1506427482931200002" timestamp="Yday 22:45" profile="1100000000000000011" class="dht-msg" data-author-id="1100000000000000011" data-author-name="bob" data-roles="1100000000000000001" data-timestamp="1779230700000" data-timestamp-iso="2026-05-19T22:45:00.000Z" data-text="yesterday ||with a spoiler||">yesterday <!-- --><span class="discord-spoiler">with a spoiler<!-- --></span></discord-message><div class="dht-date-sep">Wednesday, May 20, 2026</div><discord-message id="m-1506556080291840003" timestamp="07:16" edited="" profile="1100000000000000010" class="dht-msg" data-author-id="1100000000000000010" data-author-name="ally" data-roles="1100000000000000001,1100000000000000002,1100000000000000003" data-timestamp="1779261360000" data-timestamp-iso="2026-05-20T07:16:00.000Z" data-text="today"><span class="dht-edit-marker" title="Edited at 07:20" data-edit-iso="2026-05-20T07:20:00.000Z" data-i18n="edited" data-i18n-params="{&quot;time&quot;:&quot;07:20&quot;}">(changed)</span>today<!-- --></discord-message></discord-messages><footer class="dht-stats">3 messages · 2 participants · 1 image · Apr 20, 2026, 10:00 AM → May 20, 2026, 7:16 AM · 29d 21h</footer><script><!-- static: mentionPopup --></script><script><!-- static: searchBar --></script><script><!-- static: lightbox --></script><script><!-- static: toc --></script><script><!-- static: filterPanel --></script><script><!-- static: codeCopyButton --></script></body></html>

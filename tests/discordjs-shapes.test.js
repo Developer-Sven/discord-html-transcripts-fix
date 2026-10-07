@@ -554,6 +554,41 @@ test('link and image URL checks keep each kind of URL in its place', () => {
     }
 });
 
+test('a code block in a language highlight.js does not know renders as plain text instead of failing the export', async (t) => {
+    const ESC = String.fromCharCode(27);
+    const block = (language, code) => '```' + language + '\n' + code + '\n```';
+    const { body } = await render(t, (w) => [
+        w.message({ createdAt: at(0, 9, 43), content: 'before' }),
+        // Discord colors these; the transcript shows the text without the control sequences.
+        w.message({ createdAt: at(0, 9, 44), content: block('ansi', ESC + '[31mred' + ESC + '[0m and ' + ESC + '[1;34mblue' + ESC + '[0m') }),
+        w.message({ createdAt: at(0, 9, 45), content: block('log', 'plain <b>log</b> & "line"') }),
+        w.message({ createdAt: at(0, 9, 46), content: block('js2', 'a typo in the language name') }),
+        w.message({ createdAt: at(0, 9, 47), content: block('JS', 'const answer = 42;') }),
+        w.message({ createdAt: at(0, 9, 48), content: 'after' }),
+    ]);
+    assert.ok(body.includes('before') && body.includes('after'), 'every message is still there');
+    assert.ok(body.includes('red and blue'), 'the ansi block reads without its escape sequences');
+    assert.ok(!new RegExp('<discord-code[^>]*>[^<]*' + ESC).test(body), 'no escape character is left in a code block');
+    assert.ok(body.includes('plain &lt;b&gt;log&lt;/b&gt; &amp; &quot;line&quot;'), 'unknown languages are shown as escaped text');
+    assert.ok(body.includes('a typo in the language name'));
+    // A known language is still highlighted, whatever the case it was written in.
+    assert.match(body, /<span class="hljs-keyword">const<\/span> answer/);
+});
+
+test('a role subscription names its tier exactly as written, whatever characters it holds', async (t) => {
+    const tiers = ['Gold $& Tier', "Gold $' Tier", 'Gold $` Tier', 'Gold $$ Tier', 'Gold $1 $<name> Tier'];
+    const { body } = await render(t, (w) => tiers.map((tier, i) => w.message({
+        createdAt: at(0, 9, 50 + i),
+        type: 25,
+        content: '',
+        role_subscription_data: { role_subscription_listing_id: '1100000000000000400', tier_name: tier, total_months_subscribed: 3, is_renewal: true },
+    })));
+    for (const tier of tiers) {
+        const escaped = tier.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#x27;');
+        assert.ok(body.includes('subscribed to ' + escaped + '!'), tier);
+    }
+});
+
 test('a voice message shows its duration', async (t) => {
     const { body } = await render(t, (w) => [w.message({
         createdAt: at(0, 9, 20),

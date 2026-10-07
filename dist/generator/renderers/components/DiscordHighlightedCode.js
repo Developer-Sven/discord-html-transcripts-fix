@@ -7,6 +7,7 @@ exports.DiscordHighlightStyles = void 0;
 exports.DiscordHighlightedCode = DiscordHighlightedCode;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const highlight_js_1 = __importDefault(require("highlight.js"));
+const utils_1 = require("../../../utils/utils");
 // styles from https://github.com/cherryblossom000/discord-syntax-highlighting/tree/main
 exports.DiscordHighlightStyles = `
   .hljs-ansi-control-sequence {
@@ -190,10 +191,35 @@ exports.DiscordHighlightStyles = `
 	background-color: #67060c;
   }
 `;
+const ESC = String.fromCharCode(27);
+// Discord colors ANSI blocks; the transcript shows their text without the control sequences.
+const ANSI_SGR = new RegExp(ESC + '\\[[0-9;]*m', 'g');
+
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#x27;');
+}
+
+// The block is rendered while React runs, outside every per-message safety net, so a
+// throw here used to reject the whole export: highlight.js raises an error for a language
+// it does not know ("ansi", "log", a typo such as "js2"), and users write those all the time.
+// Those blocks show as plain text, which is what Discord does for them.
+function highlightCode(content, language) {
+    const name = typeof language === 'string' ? language.trim() : '';
+    try {
+        if (!name) return highlight_js_1.default.highlightAuto(content).value;
+        if (highlight_js_1.default.getLanguage(name)) return highlight_js_1.default.highlight(content, { language: name }).value;
+    } catch (err) {
+        console.warn('[discord-html-transcripts-fix] could not highlight a code block:', (0, utils_1.describeError)(err));
+    }
+    return escapeHtml(name.toLowerCase() === 'ansi' ? content.replace(ANSI_SGR, '') : content);
+}
+
 function DiscordHighlightedCode(props) {
-    const highlighted = props.language
-        ? highlight_js_1.default.highlight(props.content, { language: props.language })
-        : highlight_js_1.default.highlightAuto(props.content);
-    return (0, jsx_runtime_1.jsx)("discord-code", { multiline: true, className: "theme-dark hljs", dangerouslySetInnerHTML: { __html: highlighted.value } });
+    return (0, jsx_runtime_1.jsx)("discord-code", { multiline: true, className: "theme-dark hljs", dangerouslySetInnerHTML: { __html: highlightCode(props.content, props.language) } });
 }
 //# sourceMappingURL=DiscordHighlightedCode.js.map

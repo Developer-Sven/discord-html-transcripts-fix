@@ -201,7 +201,7 @@ async function SystemMessage({ message, context }) {
             return ((0, jsx_runtime_1.jsxs)("discord-system-message", { id: `m-${message.id}`, timestamp: ts, type: "boost", children: [
                 (0, jsx_runtime_1.jsx)(Highlight, { color, userId: authorId, children: authorName }),
                 ' ',
-                t(ctx, 'roleSubPurchased', 'subscribed to {role}!').replace('{role}', roleName),
+                t(ctx, 'roleSubPurchased', 'subscribed to {role}!').replace('{role}', () => roleName),
             ] }, message.id));
         }
 
